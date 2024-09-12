@@ -27,15 +27,27 @@ def matchPics(I1, I2, opts):
         
 
         # TODO: Convert Images to GrayScale
-        
+        'coverting using cv2'
+        # I1_grayscale = cv2.cvtColor(I1, cv2.COLOR_BGR2GRAY)
+        # I2_grayscale = cv2.cvtColor(I2, cv2.COLOR_BGR2GRAY)
+
+        'coverting using skimage'
+        I1_grayscale = skimage.color.rgb2gray(I1)
+        I2_grayscale = skimage.color.rgb2gray(I2)
+
         
         # TODO: Detect Features in Both Images
-        
+        locs1 = corner_detection(I1_grayscale, sigma)
+        locs2 = corner_detection(I2_grayscale, sigma)
+
         
         # TODO: Obtain descriptors for the computed feature locations
+        desc1, locs1 = computeBrief(I1_grayscale, locs1)
+        desc2, locs2 = computeBrief(I2_grayscale, locs2)
         
 
         # TODO: Match features using the descriptors
+        matches = briefMatch(desc1, desc2, ratio)
         
 
         return matches, locs1, locs2
