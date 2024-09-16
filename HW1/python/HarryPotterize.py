@@ -15,12 +15,15 @@ def warpImage(opts):
     cv_cover = cv2.imread('../data/cv_cover.jpg')
     cv_desk = cv2.imread('../data/cv_desk.png')
     hp_cover = cv2.imread('../data/hp_cover.jpg')
+    # resize hp_cover to cv_cover size
+    hp_cover = cv2.resize(hp_cover, (cv_cover.shape[1], cv_cover.shape[0]))
 
     # Check if images are loaded properly
     if cv_cover is None or cv_desk is None or hp_cover is None:
         print("Error: One or more images could not be loaded. Please check the file paths.")
         return
     
+
     # compute homography
     matches, locs1, locs2 = matchPics(cv_cover, cv_desk, opts)
 
@@ -29,6 +32,8 @@ def warpImage(opts):
         return
     
     bestH2to1, inliers = computeH_ransac(locs1[matches[:, 0]], locs2[matches[:, 1]], opts)
+    print(f"Best Homography Matrix:\n{bestH2to1}")
+    print(f"Number of inliers: {np.sum(inliers)}")
 
     # warp images
     composite_img = compositeH(bestH2to1, hp_cover, cv_desk)
@@ -46,5 +51,4 @@ if __name__ == "__main__":
 
     opts = get_opts()
     warpImage(opts)
-
 
