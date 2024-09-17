@@ -16,15 +16,16 @@ def computeH(x1, x2):
     for i in range(N):
         x, y = x1[i]
         X, Y = x2[i]
-        A[2*i] = [-X, -Y, -1, 0, 0, 0, x*X, x*Y, x]
-        A[2*i+1] = [0, 0, 0, -X, -Y, -1, y*X, y*Y, y]
+        A[2*i] = [-X, -Y, -1, 0, 0, 0, X*x, Y*x, x]
+        A[2*i+1] = [0, 0, 0, -X, -Y, -1, X*y, Y*y, y]
 
     # Solve using SVD
     _, _, V = np.linalg.svd(A)
 
     # Homography
-    H2to1 = V[-1].reshape(3, 3)
-    
+    H2to1 = V[-1, :].reshape(3, 3)
+
+
     return H2to1
 
 
@@ -41,10 +42,12 @@ def computeH_norm(x1, x2):
     x2_shifted = x2 - x2_centroid
 
     # TODO: Normalize the points so that the largest distance from the origin is equal to sqrt(2)
-    max_dist1 = np.max(np.sqrt(np.sum(x1_shifted**2, axis=1)))
-    max_dist2 = np.max(np.sqrt(np.sum(x2_shifted**2, axis=1)))
-    x1_scale = np.sqrt(2) / max_dist1
-    x2_scale = np.sqrt(2) / max_dist2
+    x1_dist = np.mean(np.sqrt(np.sum(x1_shifted**2, axis=1)))
+    x2_dist = np.mean(np.sqrt(np.sum(x2_shifted**2, axis=1)))
+
+    # Scale factors
+    x1_scale = np.sqrt(2) / x1_dist
+    x2_scale = np.sqrt(2) / x2_dist
 
     # TODO: Similarity transform 1
     T1 = np.array([[x1_scale, 0, -x1_scale*x1_centroid[0]], [0, x1_scale, -x1_scale*x1_centroid[1]], [0, 0, 1]])
@@ -53,13 +56,14 @@ def computeH_norm(x1, x2):
     T2 = np.array([[x2_scale, 0, -x2_scale*x2_centroid[0]], [0, x2_scale, -x2_scale*x2_centroid[1]], [0, 0, 1]])
 
     # TODO: Compute homography
-    # Normalize points
-    x1_normalized = (T1 @ np.hstack((x1, np.ones((x1.shape[0], 1)))).T).T
-    x2_normalized = (T2 @ np.hstack((x2, np.ones((x2.shape[0], 1)))).T).T
 
-    # Remove the third dimension
-    x1_normalized = x1_normalized[:, :2] / x1_normalized[:, 2][:, np.newaxis]
-    x2_normalized = x2_normalized[:, :2] / x2_normalized[:, 2][:, np.newaxis]
+    # Convert to homogeneous coordinates
+    x1_homogeneous = np.hstack((x1, np.ones((x1.shape[0], 1))))
+    x2_homogeneous = np.hstack((x2, np.ones((x2.shape[0], 1))))
+                               
+    # Normalize points
+    x1_normalized = (T1 @ x1_homogeneous.T).T[:, :2]
+    x2_normalized = (T2 @ x2_homogeneous.T).T[:, :2]
 
     # Compute homography between normalized points
     H2to1_normalized = computeH(x1_normalized, x2_normalized)
@@ -80,45 +84,44 @@ def computeH_ransac(locs1, locs2, opts):
     inlier_tol = opts.inlier_tol # the tolerance value for considering a point to be an inlier
 
     # Initialize variables
-    N = locs1.shape[0]
-    bestH2to1 = np.eye(3)
-    bestinliers = np.zeros(N)
+    num = locs1.shape[0]  # number of points
+    bestH2to1 = None
+    best_inliers = np.zeros(len(locs1))
     max_inliers = 0
 
     for i in range(max_iters):
-        # sample 4 points
-        idx = np.random.choice(N, 4, replace=False)
+        # Sample 4 points randomly
+        idx = np.random.choice(num, 4, replace=False)
         x1_sample = locs1[idx]
         x2_sample = locs2[idx]
 
         # Compute homography
-        H2to1 = computeH_norm(x1_sample, x2_sample)
+        H2to1_sample = computeH_norm(x1_sample, x2_sample)
 
         # Transform points 
-        locs2_homogeneous = np.hstack((locs2, np.ones((N, 1))))
-        locs2_project = (H2to1 @ locs2_homogeneous.T).T
+        locs2_homogeneous = np.hstack((locs2, np.ones((num, 1))))
+        locs1_project = (H2to1_sample @ locs2_homogeneous.T).T
+        locs1_project /= locs1_project[:, 2:3]  # normalize points
 
-        # Normalize points
-        locs2_project = locs2_project[:, :2] / locs2_project[:, 2][:, np.newaxis]
 
         # Compute distance between points
-        dist = np.linalg.norm(locs1 - locs2_project, axis=1)
+        euclidean_distances = np.sqrt(np.sum((locs1 - locs1_project[:, :2])**2, axis=1))
 
-        # Count inliers
-        inliers = dist < inlier_tol
+        # Determine inliers
+        inliers = euclidean_distances < inlier_tol
         inlier_count = np.sum(inliers)
 
         # Update best homography
         if inlier_count > max_inliers:
             max_inliers = inlier_count
-            bestH2to1 = H2to1
-            bestinliers = inliers
+            bestH2to1 = H2to1_sample
+            best_inliers = inliers
 
         # Print inliers information
         if i % 100 == 0:  # Print every 100 iterations
             print(f"Iteration {i}: {inlier_count} inliers")
 
-    return bestH2to1, bestinliers
+    return bestH2to1, best_inliers
 
 
 
@@ -131,24 +134,31 @@ def compositeH(H2to1, template, img):
     #x_template = H2to1*x_photo
     #For warping the template to the image, we need to invert it.
 
-    # invert homography
+    # Invert homography
     H2to1_invert = np.linalg.inv(H2to1)
 
+
     # TODO: Create mask of same size as template
-    mask = np.ones((template.shape[0], template.shape[1]), dtype=np.uint8) * 255
+    mask = np.ones((template.shape[0], template.shape[1]), dtype=np.uint8)
 
     # TODO: Warp mask by appropriate homography
     warped_mask = cv2.warpPerspective(mask, H2to1_invert, (img.shape[1], img.shape[0]))
 
-    # TODO: Warp template by appropriate homography
-    warped_template = cv2.warpPerspective(template, H2to1_invert, (img.shape[1], img.shape[0]))
 
-    # TODO: Use mask to combine the warped template and the image
-    composite_img = img.copy()
-    for i in range(3):
-        composite_img[:, :, i] = warped_mask / 255 * warped_template[:, :, i] + (1 - warped_mask / 255) * img[:, :, i]
+    # TODO: Warp template by appropriate homography
+    warped_template = cv2.warpPerspective(template, H2to1_invert, (img.shape[1], img.shape[0])) 
     
 
+    # TODO: Use mask to combine the warped template and the image
+    'handle both grayscale and color images'
+    # If grayscale
+    if len(img.shape) == 2:
+        composite_img = img.copy()
+        composite_img[warped_mask > 0] = warped_template[warped_mask > 0]
+    # If color
+    else:
+        composite_img = img.copy()
+        for i in range(3):
+            composite_img[:, :, i] = composite_img[:, :, i] * (1 - warped_mask) + warped_template[:, :, i] * warped_mask
+    
     return composite_img
-
-
