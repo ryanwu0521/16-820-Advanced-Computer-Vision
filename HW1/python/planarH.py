@@ -85,6 +85,10 @@ def computeH_ransac(locs1, locs2, opts):
 
     # Initialize variables
     num = locs1.shape[0]  # number of points
+    # handle special case when number of points is less than 4
+    if num < 4:
+        raise ValueError("Number of points is less than 4")
+    
     bestH2to1 = None
     best_inliers = np.zeros(len(locs1))
     max_inliers = 0
@@ -118,8 +122,8 @@ def computeH_ransac(locs1, locs2, opts):
             best_inliers = inliers
 
         # Print inliers information
-        if i % 100 == 0:  # Print every 100 iterations
-            print(f"Iteration {i}: {inlier_count} inliers")
+        # if i % 100 == 0:  # Print every 100 iterations
+        #     print(f"Iteration {i}: {inlier_count} inliers")
 
     return bestH2to1, best_inliers
 
