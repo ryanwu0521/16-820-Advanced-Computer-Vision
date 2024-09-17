@@ -38,12 +38,12 @@ def warpImage(opts):
     # Implement RANSAC
     bestH2to1, best_inliers = computeH_ransac(locs1[matches[:,0]][:, [1, 0]], locs2[matches[:,1]][:, [1, 0]], opts)
   
-    print(f"Best Homography Matrix:\n{bestH2to1}")
-    print(f"Number of inliers: {np.sum(best_inliers)}")
+    # print(f"Best Homography Matrix:\n{bestH2to1}")
+    # print(f"Number of inliers: {np.sum(best_inliers)}")
 
     # Warp images
     composite_img = compositeH(bestH2to1, hp_cover_resized, cv_desk)
-    cv2.imwrite('../results/Q2.2.4_result.png', composite_img)
+    cv2.imwrite('../results/Q2.2.5_result.png', composite_img)
 
     # display matched features for debugging
     # displayMatched(opts, cv_cover, cv_desk)
