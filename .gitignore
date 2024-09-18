@@ -1,4 +1,3 @@
 .venv/
 __pycache__/
 video_frames/
-data/
