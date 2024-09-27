@@ -2,7 +2,7 @@ import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-from LucasKanade import LucasKanade as LKT
+from LucasKanade import LucasKanade
 
 # write your script here, we recommend the above libraries for making your animation
 
@@ -42,13 +42,16 @@ for i in range(num_frames - 1):
     It1 = seq[:, :, i + 1]
 
     # run Lucas-Kanade tracking
-    p = LKT(It, It1, rect, threshold, num_iters)
+    p = LucasKanade(It, It1, rect, threshold, num_iters)
 
     # update the rectangle coordinates for the next frame
     rect[0] += p[0]
     rect[2] += p[0]
     rect[1] += p[1]
     rect[3] += p[1]
+
+    # update template image
+    It = It1
 
     # save the rectangle coordinates
     rects[i + 1] = rect.copy()
