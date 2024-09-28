@@ -43,15 +43,15 @@ for i in range(num_frames - 1):
 
     # run Lucas-Kanade tracking
     p = LucasKanade(It, It1, rect, threshold, num_iters)
+    
+    # debug print
+    # print(f"tracking at frame {i + 1}, movement vector: {p}")
 
     # update the rectangle coordinates for the next frame
     rect[0] += p[0]
     rect[2] += p[0]
     rect[1] += p[1]
     rect[3] += p[1]
-
-    # update template image
-    It = It1
 
     # save the rectangle coordinates
     rects[i + 1] = rect.copy()
