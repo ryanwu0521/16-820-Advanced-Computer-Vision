@@ -41,13 +41,14 @@ def LucasKanade(It, It1, rect, threshold, num_iters, p0=np.zeros(2)):
         It_template = It_interp.ev(y, x).flatten()
 
         # warp the current image using the movement vector
-        It1_warp = It1_interp.ev(y + p[1], x + p[0]).flatten()
+        x_warped, y_warped = x + p[0], y + p[1]
+        It1_warped = It1_interp.ev(y_warped, x_warped).flatten()
         
         # compute the Jacobian
-        A = np.array([It1_interp.ev(y + p[1], x + p[0], dy=1).flatten(), It1_interp.ev(y + p[1], x + p[0], dx=1).flatten()]).T
+        A = np.array([It1_interp.ev(y_warped, x_warped, dy=1).flatten(), It1_interp.ev(y_warped, x_warped, dx=1).flatten()]).T
 
         # compute the error image
-        b = (It_template - It1_warp).flatten()
+        b = (It_template - It1_warped).flatten()
 
         # compute the delta p
         dp = np.linalg.lstsq(A, b, rcond=None)[0]
