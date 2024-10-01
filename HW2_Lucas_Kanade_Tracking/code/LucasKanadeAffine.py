@@ -12,8 +12,24 @@ def LucasKanadeAffine(It, It1, threshold, num_iters):
     :return: M: the Affine warp matrix [2x3 numpy array] put your implementation here
     """
 
-    # put your implementation here
-    M = np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]])
+    
     ################### TODO Implement Lucas Kanade Affine ###################
     
+    # intialize p & M
+    p = np.zeros(6)
+    M = np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]])
+    
+    # image size
+    H, W = It.shape
+
+    # meshgrid for the template image
+    x, y = np.meshgrid(np.arange(W), np.arange(H))
+
+    # interpolate the template and current image
+    It_interp = RectBivariateSpline(np.arange(H), np.arange(W), It)
+    It1_interp = RectBivariateSpline(np.arange(H), np.arange(W), It1)
+  
+
+
+
     return M

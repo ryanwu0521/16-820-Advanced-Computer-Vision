@@ -31,74 +31,67 @@ template_threshold = args.template_threshold
 seq = np.load("../data/girlseq.npy")
 
 # templet in the first frame
-rect_nc = [280, 152, 330, 318]   # no drift correction
-rect_wc = [280, 152, 330, 318]   # with drift correction
-
-# initialize the rectangle coordinates without drift correction
-rects_nc = np.zeros((seq.shape[2], 4))
-rects_nc[0] = rect_nc.copy()
-
-# initialize the rectangle coordinates with drift correction
-rects_wcrt = np.zeros((seq.shape[2], 4))
-rects_wcrt[0] = rect_wc.copy()
+rect_ndc = [280, 152, 330, 318]   # no drift correction
+rect_wdc = [280, 152, 330, 318]   # with drift correction
 
 # number of frames for the sequence
 num_frames = seq.shape[2]
 
+# initialize the rectangle coordinates without drift correction
+rects_ndc = np.zeros((num_frames, 4))
+rects_ndc[0] = rect_ndc.copy()
+
+# initialize the rectangle coordinates with drift correction
+# rects_wdc = np.zeros(2)
+rects_wdc = np.zeros((num_frames, 4))
+rects_wdc[0] = rect_wdc.copy()
+
+
 # iterate through the frames
 for i in range(num_frames - 1):
     print(f"tracking at frame {i + 1}")
-    # get the current frame and the next frame
+
+    # get the first, current, and next frame images
     It = seq[:, :, i]
     It1 = seq[:, :, i + 1]
+    It0 = seq[:, :, 0]
 
     # run Lucas-Kanade tracking without drift correction
-    p = LucasKanade(It, It1, rect_nc, threshold, num_iters)
+    p_ndc = LucasKanade(It, It1, rect_ndc, threshold, num_iters)
 
     # update the rectangle coordinates without drift correction
-    rect_nc[0] += p[0]
-    rect_nc[2] += p[0]
-    rect_nc[1] += p[1]
-    rect_nc[3] += p[1]
+    rect_ndc += np.array([p_ndc[0], p_ndc[1], p_ndc[0], p_ndc[1]])
 
     # Save the rectangle coordinates without drift correction
-    rects_nc[i + 1] = rect_nc.copy()
+    rects_ndc[i + 1] = rect_ndc.copy()
 
-    # Update the rectangle coordinates with drift correction
-    rect_prev_wc = rect_wc.copy()
-    rect_wc[0] += p[0]
-    rect_wc[2] += p[0]
-    rect_wc[1] += p[1]
-    rect_wc[3] += p[1]
+    # run Lucas-Kanade tracking (with drift correction)
+    p_wdc = LucasKanade(It0, It1, rect_wdc, threshold, num_iters, p_ndc)
+
+    # update the rectangle coordinates (with drift correction)
+    rect_wdc += np.array([p_wdc[0], p_wdc[1], p_wdc[0], p_wdc[1]])
 
     # calculate drift
-    p_n = p + [rect_prev_wc[0] - rect_wc[0], rect_prev_wc[1] - rect_wc[1]]
-    # p_n = [rect_wc[0] - rect_prev_wc[0], rect_wc[1] - rect_prev_wc[1]]
-    # p_n = np.array(p + [rect_prev_wc[0] - rect_wc[0], rect_prev_wc[1] - rect_wc[1]])
-
-    # update the rectangle coordinates with drift correction
-    # p_n = drift
-
-    # run Lucas-Kanade tracking with drift correction
-    p_n_star = LucasKanade(It, It1, rect_wc, threshold, num_iters, p_n)
+    drift = rect_wdc - rect_ndc
 
     # drift correction condition
-    if np.linalg.norm(p_n_star - p_n) <= template_threshold:
-        drift_correction = p_n_star - p_n
-        rect_wc[0] += drift_correction[0]
-        rect_wc[2] += drift_correction[0]
-        rect_wc[1] += drift_correction[1]
-        rect_wc[3] += drift_correction[1]
+    if np.linalg.norm(drift) <= template_threshold:
+        # apply drift correction
+        # rect_wdc += np.array([drift[0], drift[1], drift[0], drift[1]])
+        rect_wdc += np.array([p_wdc[0], p_wdc[1], p_wdc[0], p_wdc[1]])
+        print(f"Frame {i+1}: Drift correction applied with {drift}")
+
     else:
         # keep previous template
-        rect_wc = rect_prev_wc.copy()
-        
+        rect_wdc = rects_wdc[i].copy()
+        print(f"Frame {i+1}: No drift correction applied")
+
     # Save the rectangle coordinates with drift correction
-    rects_wcrt[i + 1] = rect_wc.copy()
+    rects_wdc[i + 1] = rect_wdc.copy()
 
 # save the rectangle coordinates to file
-np.save("../results/girlseqrects.npy", rects_nc)
-np.save("../results/girlseqrects-wcrt.npy", rects_wcrt)
+np.save("../results/girlseqrects.npy", rects_ndc)
+np.save("../results/girlseqrects-wcrt.npy", rects_wdc)
 
 # visualize the tracking results @ frame 1, 20, 40, 60, 80 
 frames = [1, 20, 40, 60, 80]
@@ -113,9 +106,9 @@ for i, frame in enumerate(frames):
     # without drift correction
     ax[i].add_patch(
         patches.Rectangle(
-            (rects_nc[frame][0], rects_nc[frame][1]),
-            rects_nc[frame][2] - rects_nc[frame][0],
-            rects_nc[frame][3] - rects_nc[frame][1],
+            (rects_ndc[frame][0], rects_ndc[frame][1]),
+            rects_ndc[frame][2] - rects_ndc[frame][0],
+            rects_ndc[frame][3] - rects_ndc[frame][1],
             linewidth=1,
             edgecolor="b",
             facecolor="none",
@@ -125,9 +118,9 @@ for i, frame in enumerate(frames):
     # with drift correction
     ax[i].add_patch(
         patches.Rectangle(
-            (rects_wcrt[frame][0], rects_wcrt[frame][1]),
-            rects_wcrt[frame][2] - rects_wcrt[frame][0],
-            rects_wcrt[frame][3] - rects_wcrt[frame][1],
+            (rects_wdc[frame][0], rects_wdc[frame][1]),
+            rects_wdc[frame][2] - rects_wdc[frame][0],
+            rects_wdc[frame][3] - rects_wdc[frame][1],
             linewidth=1,
             edgecolor="r",
             facecolor="none",
