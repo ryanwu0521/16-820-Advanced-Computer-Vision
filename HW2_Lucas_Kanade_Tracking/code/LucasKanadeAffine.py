@@ -37,11 +37,21 @@ def LucasKanadeAffine(It, It1, threshold, num_iters):
     It_interp = RectBivariateSpline(np.arange(H), np.arange(W), It)
     It1_interp = RectBivariateSpline(np.arange(H), np.arange(W), It1)
 
+    # precompute the template image gradient
+    It_template = It_interp.ev(y, x).reshape(H, W)
+    x_grad = cv2.Sobel(It_template, cv2.CV_64F, 1, 0, ksize=3)
+    y_grad = cv2.Sobel(It_template, cv2.CV_64F, 0, 1, ksize=3)
+
+    # precomputer the Jacobian matrix A
+    A = np.zeros((H * W, 6))
+    A[:, 0] = x.flatten() * x_grad.flatten()
+    A[:, 1] = x.flatten() * y_grad.flatten()
+    A[:, 2] = x_grad.flatten()
+    A[:, 3] = y.flatten() * x_grad.flatten()
+    A[:, 4] = y.flatten() * y_grad.flatten()
+    A[:, 5] = y_grad.flatten()
 
     for _ in range(int(num_iters)):
-
-        # interpolate the current template image
-        It_template = It_interp.ev(y, x).reshape(H, W)
 
         # affine warp
         x_warped, y_warped = affine_warp(x.flatten(), y.flatten(), p) 
@@ -52,34 +62,18 @@ def LucasKanadeAffine(It, It1, threshold, num_iters):
         # compute the error image
         b = (It_template - It1_warped).flatten()
 
-        # compute the gradient of warped image
-        x_grad = cv2.Sobel(It1_warped, cv2.CV_64F, 1, 0, ksize=3)
-        y_grad = cv2.Sobel(It1_warped, cv2.CV_64F, 0, 1, ksize=3)
-
-        # compute the Jacobian
-        A = np.zeros((H * W, 6))
-        A[:, 0] = x.flatten() * x_grad.flatten()
-        A[:, 1] = x.flatten() * y_grad.flatten()
-        A[:, 2] = x_grad.flatten()
-        A[:, 3] = y.flatten() * x_grad.flatten()
-        A[:, 4] = y.flatten() * y_grad.flatten()
-        A[:, 5] = y_grad.flatten()
-
-        # compute the delta p
+        # compute the delta p (steepest descent)
         dp = np.linalg.lstsq(A, b, rcond=None)[0]
-
-        # update the movement vector
-        p += dp
 
         # termination condition
         if np.linalg.norm(dp) < threshold:
             break
 
+        # update the movement vector
+        p += dp
+   
     # update the affine warp matrix
     M = np.array([[1 + p[0], p[1], p[2]], 
                   [p[3], 1 + p[4], p[5]]])
-    
-    # debug print
-    # print(f"M: {M}")
     
     return M

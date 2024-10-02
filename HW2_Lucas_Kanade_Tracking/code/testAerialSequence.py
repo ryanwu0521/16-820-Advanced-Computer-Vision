@@ -2,7 +2,7 @@ import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-from SubtractDominantMotion import SubtractDominantMotion
+from SubtractDominantMotion import SubtractDominantMotion, SubtractDominantMotionInverse
 
 # write your script here, we recommend all or some of the above libraries for making your animation
 
@@ -23,15 +23,19 @@ parser.add_argument(
     help='binary threshold of intensity difference when computing the mask',
 )
 parser.add_argument(
-    '--seq',
+    '--seq_file',
     default='../data/aerialseq.npy',
+)
+parser.add_argument(
+    '--inverseMotion', action='store_true', help='use SubtractDominantMotionInverse if set'
 )
 
 args = parser.parse_args()
 num_iters = args.num_iters
 threshold = args.threshold
 tolerance = args.tolerance
-seq_file_path = args.seq
+seq_file_path = args.seq_file
+inverse = args.inverseMotion
 
 seq = np.load(seq_file_path)
 
@@ -55,8 +59,12 @@ num_frames = seq.shape[2]
 # iterate over the frames
 for i in range(seq.shape[2] - 1):
     print(f"Tracking frame: {i + 1}/{num_frames - 1}")
-    # compute the motion mask between consecutive frames
-    mask = SubtractDominantMotion(seq[:,:,i], seq[:,:,i+1], threshold, num_iters, tolerance)
+    if inverse:
+        mask = SubtractDominantMotionInverse(seq[:,:,i], seq[:,:,i+1], threshold, num_iters, tolerance)
+    else:
+        # compute the motion mask between consecutive frames
+        mask = SubtractDominantMotion(seq[:,:,i], seq[:,:,i+1], threshold, num_iters, tolerance)
+    
     masks.append(mask)
 
 # visualize the motion masks @ frames 30, 60, 90, 120
@@ -71,5 +79,14 @@ for i, frame in enumerate(frames):
     ax[i].axis('off')
     ax[i].set_title('Frame {}'.format(frame))
 
-plt.savefig("../results/Q2.3_aerial.png")
+if inverse:
+    output_file = "../results/Q3.1_aerial.png"
+else:
+    output_file = "../results/Q2.3_aerial.png"
+
+plt.savefig(output_file)
 plt.show()
+
+# command to run the script
+# python testAerialSequence.py --num_iters 100 --threshold 5 --tolerance 0.165 --seq_file ../data/aerialseq.npy
+# python testAerialSequence.py --num_iters 100 --threshold 5 --tolerance 0.165 --seq_file ../data/aerialseq.npy --inverse

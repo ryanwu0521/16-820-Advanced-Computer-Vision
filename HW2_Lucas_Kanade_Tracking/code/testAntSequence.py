@@ -2,7 +2,7 @@ import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-from SubtractDominantMotion import SubtractDominantMotion
+from SubtractDominantMotion import SubtractDominantMotion, SubtractDominantMotionInverse
 
 # write your script here, we recommend the above libraries for making your animation
 
@@ -13,7 +13,7 @@ parser.add_argument(
 parser.add_argument(
     '--threshold',
     type=float,
-    default=0.05,
+    default=5,
     help='dp threshold of Lucas-Kanade for terminating optimization',
 )
 parser.add_argument(
@@ -26,12 +26,16 @@ parser.add_argument(
     '--seq_file',
     default='../data/antseq.npy',
 )
+parser.add_argument(
+    '--inverseMotion', action='store_true', help='use SubtractDominantMotionInverse if set'
+)
 
 args = parser.parse_args()
 num_iters = args.num_iters
 threshold = args.threshold
 tolerance = args.tolerance
 seq_file = args.seq_file
+inverse = args.inverseMotion
 
 seq = np.load(seq_file)
 
@@ -54,8 +58,12 @@ num_frames = seq.shape[2]
 # iterate over the frames
 for i in range(seq.shape[2] - 1):
     print(f"Tracking frame: {i + 1}/{num_frames - 1}")
-    # compute the motion mask between consecutive frames
-    mask = SubtractDominantMotion(seq[:,:,i], seq[:,:,i+1], threshold, num_iters, tolerance)
+    if inverse:
+        mask = SubtractDominantMotionInverse(seq[:,:,i], seq[:,:,i+1], threshold, num_iters, tolerance)
+    else:
+        # compute the motion mask between consecutive frames
+        mask = SubtractDominantMotion(seq[:,:,i], seq[:,:,i+1], threshold, num_iters, tolerance)
+    
     masks.append(mask)
 
 # visualize the motion masks @ frames 30, 60, 90, 120
@@ -70,5 +78,14 @@ for i, frame in enumerate(frames):
     ax[i].axis('off')
     ax[i].set_title('Frame {}'.format(frame))
 
-plt.savefig("../results/Q2.3_ant.png")
+if inverse:
+    output_file = "../results/Q3.1_ant.png"
+else:
+    output_file = "../results/Q2.3_ant.png"
+
+plt.savefig(output_file)
 plt.show()
+
+# command to run the script
+# python testAntSequence.py --num_iters 100000000000 --threshold 5 --tolerance 0.016 --seq_file ../data/antseq.npy
+# python testAntSequence.py --num_iters 100000000000 --threshold 5 --tolerance 0.016 --seq_file ../data/antseq.npy --inverse
