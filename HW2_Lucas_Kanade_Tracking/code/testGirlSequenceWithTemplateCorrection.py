@@ -42,14 +42,12 @@ rects_ndc = np.zeros((num_frames, 4))
 rects_ndc[0] = rect_ndc.copy()
 
 # initialize the rectangle coordinates with drift correction
-# rects_wdc = np.zeros(2)
 rects_wdc = np.zeros((num_frames, 4))
 rects_wdc[0] = rect_wdc.copy()
 
-
 # iterate through the frames
 for i in range(num_frames - 1):
-    print(f"tracking at frame {i + 1}")
+    print(f"Tracking at frame {i + 1}/{num_frames - 1}")
 
     # get the first, current, and next frame images
     It = seq[:, :, i]
@@ -60,31 +58,39 @@ for i in range(num_frames - 1):
     p_ndc = LucasKanade(It, It1, rect_ndc, threshold, num_iters)
 
     # update the rectangle coordinates without drift correction
-    rect_ndc += np.array([p_ndc[0], p_ndc[1], p_ndc[0], p_ndc[1]])
+    rect_ndc[0] += p_ndc[0]
+    rect_ndc[1] += p_ndc[1]
+    rect_ndc[2] += p_ndc[0]
+    rect_ndc[3] += p_ndc[1]
 
     # Save the rectangle coordinates without drift correction
     rects_ndc[i + 1] = rect_ndc.copy()
 
     # run Lucas-Kanade tracking (with drift correction)
-    p_wdc = LucasKanade(It0, It1, rect_wdc, threshold, num_iters, p_ndc)
+    p_wdc = LucasKanade(It0, It1, np.array(rect_wdc), threshold, num_iters, p_ndc)
 
     # update the rectangle coordinates (with drift correction)
-    rect_wdc += np.array([p_wdc[0], p_wdc[1], p_wdc[0], p_wdc[1]])
+    rect_wdc[0] += p_wdc[0]
+    rect_wdc[1] += p_wdc[1]
+    rect_wdc[2] += p_wdc[0]
+    rect_wdc[3] += p_wdc[1]
 
     # calculate drift
-    drift = rect_wdc - rect_ndc
+    drift = p_wdc - p_ndc
 
     # drift correction condition
     if np.linalg.norm(drift) <= template_threshold:
         # apply drift correction
-        # rect_wdc += np.array([drift[0], drift[1], drift[0], drift[1]])
-        rect_wdc += np.array([p_wdc[0], p_wdc[1], p_wdc[0], p_wdc[1]])
-        print(f"Frame {i+1}: Drift correction applied with {drift}")
+        rect_wdc[0] += p_wdc[0]
+        rect_wdc[1] += p_wdc[1]
+        rect_wdc[2] += p_wdc[0]
+        rect_wdc[3] += p_wdc[1]
+        print(f"Frame {i + 1}: Drift correction applied with {drift}")
 
     else:
         # keep previous template
         rect_wdc = rects_wdc[i].copy()
-        print(f"Frame {i+1}: No drift correction applied")
+        print(f"Frame {i + 1}: No drift correction applied")
 
     # Save the rectangle coordinates with drift correction
     rects_wdc[i + 1] = rect_wdc.copy()
@@ -103,7 +109,7 @@ for i, frame in enumerate(frames):
     ax[i].imshow(seq[:, :, frame], cmap="gray")
     ax[i].axis("off")
 
-    # without drift correction
+    # bounding box without drift correction (blue)
     ax[i].add_patch(
         patches.Rectangle(
             (rects_ndc[frame][0], rects_ndc[frame][1]),
@@ -115,7 +121,7 @@ for i, frame in enumerate(frames):
         )
     )
 
-    # with drift correction
+    # bounding box with drift correction (red)
     ax[i].add_patch(
         patches.Rectangle(
             (rects_wdc[frame][0], rects_wdc[frame][1]),

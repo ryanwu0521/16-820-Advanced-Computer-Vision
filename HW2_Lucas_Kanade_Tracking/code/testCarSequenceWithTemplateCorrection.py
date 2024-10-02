@@ -47,7 +47,7 @@ rects_wdc[0] = rect_wdc.copy()
 
 # iterate through the frames
 for i in range(num_frames - 1):
-    print(f"Tracking at frame {i + 1}")
+    print(f"Tracking at frame {i + 1}/{num_frames - 1}")
 
     # get the first, current, and next frame images
     It = seq[:, :, i]
@@ -58,7 +58,10 @@ for i in range(num_frames - 1):
     p_ndc = LucasKanade(It, It1, rect_ndc, threshold, num_iters)
 
     # update the rectangle coordinates (no drift correction)
-    rect_ndc += np.array([p_ndc[0], p_ndc[1], p_ndc[0], p_ndc[1]])
+    rect_ndc[0] += p_ndc[0]
+    rect_ndc[1] += p_ndc[1]
+    rect_ndc[2] += p_ndc[0]
+    rect_ndc[3] += p_ndc[1]
 
     # Save the rectangle coordinates (no drift correction)
     rects_ndc[i + 1] = rect_ndc.copy()
@@ -67,16 +70,21 @@ for i in range(num_frames - 1):
     p_wdc = LucasKanade(It0, It1, rect_wdc, threshold, num_iters, p_ndc)
 
     # update the rectangle coordinates (with drift correction)
-    rect_wdc += np.array([p_wdc[0], p_wdc[1], p_wdc[0], p_wdc[1]])
+    rect_wdc[0] += p_wdc[0]
+    rect_wdc[1] += p_wdc[1]
+    rect_wdc[2] += p_wdc[0]
+    rect_wdc[3] += p_wdc[1]
 
     # calculate drift
-    drift = rect_wdc - rect_ndc
+    drift = p_wdc - p_ndc
 
     # drift correction condition
     if np.linalg.norm(drift) <= template_threshold:
         # apply drift correction
-        # rect_wdc += np.array([drift[0], drift[1], drift[0], drift[1]])
-        rect_wdc += np.array([p_wdc[0], p_wdc[1], p_wdc[0], p_wdc[1]])
+        rect_wdc[0] += p_wdc[0]
+        rect_wdc[1] += p_wdc[1]
+        rect_wdc[2] += p_wdc[0]
+        rect_wdc[3] += p_wdc[1]
         print(f"Frame {i+1}: Drift correction applied with {drift}")
 
     else:
