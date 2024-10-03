@@ -37,21 +37,16 @@ rects[0] = rect
 
 # iterate through the frames
 for i in range(num_frames - 1):
+    print(f"Tracking at frame {i + 1}/{num_frames - 1}")
     # get the current frame and the next frame
     It = seq[:, :, i]
     It1 = seq[:, :, i + 1]
 
     # run Lucas-Kanade tracking
     p = LucasKanade(It, It1, rect, threshold, num_iters)
-    
-    # debug print
-    # print(f"tracking at frame {i + 1}, movement vector: {p}")
 
     # update the rectangle coordinates for the next frame
-    rect[0] += p[0]
-    rect[2] += p[0]
-    rect[1] += p[1]
-    rect[3] += p[1]
+    rect = [rect[0] + p[0], rect[1] + p[1], rect[2] + p[0], rect[3] + p[1]]
 
     # save the rectangle coordinates
     rects[i + 1] = rect.copy()

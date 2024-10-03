@@ -4,8 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from LucasKanade import LucasKanade
 
-# write your script here, we recommend the above libraries for making your animation
-
+# Argument parser for customizable parameters
 parser = argparse.ArgumentParser()
 parser.add_argument(
     '--num_iters', type=int, default=1e4, help='number of iterations of Lucas-Kanade'
@@ -30,79 +29,59 @@ template_threshold = args.template_threshold
 # load the girl sequence
 seq = np.load("../data/girlseq.npy")
 
-# templet in the first frame
-rect_ndc = [280, 152, 330, 318]   # no drift correction
-rect_wdc = [280, 152, 330, 318]   # with drift correction
+# initial template in the first frame
+rect_wdc = np.array([280, 152, 330, 318])   # with drift correction   
+rect_ndc = rect_wdc.copy()                      # no drift correction
+rects_wdc = [rect_wdc.copy()]           
+rects_ndc = [rect_ndc.copy()]   
 
 # number of frames for the sequence
 num_frames = seq.shape[2]
 
-# initialize the rectangle coordinates without drift correction
-rects_ndc = np.zeros((num_frames, 4))
-rects_ndc[0] = rect_ndc.copy()
+# initial template in the first frame
+It = seq[:, :, 0]
+It0 = seq[:, :, 0]
 
-# initialize the rectangle coordinates with drift correction
-rects_wdc = np.zeros((num_frames, 4))
-rects_wdc[0] = rect_wdc.copy()
-
-# iterate through the frames
 for i in range(num_frames - 1):
     print(f"Tracking at frame {i + 1}/{num_frames - 1}")
 
     # get the first, current, and next frame images
-    It = seq[:, :, i]
     It1 = seq[:, :, i + 1]
-    It0 = seq[:, :, 0]
-
+ 
     # run Lucas-Kanade tracking without drift correction
     p_ndc = LucasKanade(It, It1, rect_ndc, threshold, num_iters)
 
     # update the rectangle coordinates without drift correction
-    rect_ndc[0] += p_ndc[0]
-    rect_ndc[1] += p_ndc[1]
-    rect_ndc[2] += p_ndc[0]
-    rect_ndc[3] += p_ndc[1]
-
-    # Save the rectangle coordinates without drift correction
-    rects_ndc[i + 1] = rect_ndc.copy()
+    rect_ndc = rect_ndc + np.array([p_ndc[0], p_ndc[1], p_ndc[0], p_ndc[1]])
+    rects_ndc.append(rect_ndc.copy())
 
     # run Lucas-Kanade tracking (with drift correction)
-    p_wdc = LucasKanade(It0, It1, np.array(rect_wdc), threshold, num_iters, p_ndc)
+    p = LucasKanade(It, It1, rect_wdc, threshold, num_iters)
 
-    # update the rectangle coordinates (with drift correction)
-    rect_wdc[0] += p_wdc[0]
-    rect_wdc[1] += p_wdc[1]
-    rect_wdc[2] += p_wdc[0]
-    rect_wdc[3] += p_wdc[1]
-
-    # calculate drift
-    drift = p_wdc - p_ndc
+    # update the rectangle coordinates with drift correction
+    p_n = np.array(rects_wdc[-1][:2]) - np.array(rects_wdc[0][:2]) + p
+    p_star = LucasKanade(It0, It1, rects_wdc[0], threshold, num_iters, p_n)
 
     # drift correction condition
-    if np.linalg.norm(drift) <= template_threshold:
-        # apply drift correction
-        rect_wdc[0] += p_wdc[0]
-        rect_wdc[1] += p_wdc[1]
-        rect_wdc[2] += p_wdc[0]
-        rect_wdc[3] += p_wdc[1]
-        print(f"Frame {i + 1}: Drift correction applied with {drift}")
+    if np.linalg.norm(p_star - p_n) <= template_threshold:
+        It = It1
+        p_star = np.array(rects_wdc[0][:2]) - np.array(rects_wdc[-1][:2]) + p_star
+        p = p_star
 
-    else:
-        # keep previous template
-        rect_wdc = rects_wdc[i].copy()
-        print(f"Frame {i + 1}: No drift correction applied")
-
-    # Save the rectangle coordinates with drift correction
-    rects_wdc[i + 1] = rect_wdc.copy()
+    # update the rectangle coordinates
+    rect_wdc = rect_wdc + np.array([p[0], p[1], p[0], p[1]])
+    rects_wdc.append(rect_wdc.copy())
 
 # save the rectangle coordinates to file
-np.save("../results/girlseqrects.npy", rects_ndc)
+rects_wdc = np.array(rects_wdc)         
+rects_ndc = np.array(rects_ndc)       
 np.save("../results/girlseqrects-wcrt.npy", rects_wdc)
+np.save("../results/girlseqrects.npy", rects_ndc)
 
-# visualize the tracking results @ frame 1, 20, 40, 60, 80 
+# visualize the tracking results @ frame 1, 20, 40, 60, 80
 frames = [1, 20, 40, 60, 80]
 fig, ax = plt.subplots(1, len(frames), figsize=(20, 5))
-fig.suptitle("Girl Sequence Tracking Results") 
+fig.suptitle("Girl Sequence Tracking Results")
 plt.subplots_adjust(wspace=0.1, hspace=0.1)
 
 for i, frame in enumerate(frames):
@@ -133,7 +112,7 @@ for i, frame in enumerate(frames):
         )
     )
     ax[i].set_title(f"Frame {frame}", fontsize=12)
-    ax[i].legend(["No Drift Correction", "With Drift Correction"])
+    ax[i].legend(["Without Drift Correction", "With Drift Correction"])
 
 plt.savefig("../results/Q1.4_girl.png")
 plt.show()

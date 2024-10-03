@@ -2,6 +2,7 @@ import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+import cv2
 from LucasKanade import LucasKanade
 
 # write your script here, we recommend the above libraries for making your animation
@@ -28,12 +29,13 @@ num_frames = seq.shape[2]
 
 # initialize the rectangle coordinates
 rects = np.zeros((num_frames, 4))
-
-# set the rectangle coordinates for the first frame
 rects[0] = rect
+
 
 # iterate through the frames
 for i in range(num_frames - 1):
+    print(f"Tracking at frame {i + 1}/{num_frames - 1}")
+    
     # get the current frame and the next frame
     It = seq[:, :, i]
     It1 = seq[:, :, i + 1]
@@ -41,14 +43,8 @@ for i in range(num_frames - 1):
     # run Lucas-Kanade tracking
     p = LucasKanade(It, It1, rect, threshold, num_iters)
 
-    # debug print
-    # print(f"tracking at frame {i + 1}, movement vector: {p}")
-
     # update the rectangle coordinates for the next frame
-    rect[0] += p[0]
-    rect[2] += p[0]
-    rect[1] += p[1]
-    rect[3] += p[1]
+    rect = [rect[0] + p[0], rect[1] + p[1], rect[2] + p[0], rect[3] + p[1]]
     
     # save the rectangle coordinates
     rects[i + 1] = rect.copy()
