@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from helper import displayEpipolarF, calc_epi_error, toHomogenous, refineF, _singularize
 
 # Insert your package here
+import cv2
 
 
 """
@@ -25,10 +26,32 @@ Q2.1: Eight Point Algorithm
 
 
 def eightpoint(pts1, pts2, M):
-    # Replace pass by your implementation
-    # ----- TODO -----
-    # YOUR CODE HERE
-    pass
+    # Normalize the input points using the matrix T
+    T = np.array([[1 / M, 0, 0], [0, 1 / M, 0], [0, 0, 1]])
+    pts1_norm = cv2.normalize(pts1, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+    pts2_norm = cv2.normalize(pts2, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+
+    # Constructing the A matrix
+    A = np.zeros((pts1.shape[0], 9))
+    for i in range(pts1.shape[0]):
+        x1, y1 = pts1_norm[i]
+        x2, y2 = pts2_norm[i]
+        A[i] = np.array([x1 * x2, x1 * y2, x1, y1 * x2, y1 * y2, y1, x2, y2, 1])
+
+    # Solve for least square solution using SVD
+    _, _, V = np.linalg.svd(A)
+    F = V[-1].reshape(3, 3)
+
+    # Enforcing the singularity condition
+    F = _singularize(F)
+
+    # Refining the computed fundamental matrix
+    F = refineF(F, pts1_norm, pts2_norm)
+
+    # Unscale the fundamental matrix
+    F = np.dot(np.dot(T.T, F), T)
+    
+    return F
 
 
 if __name__ == "__main__":
@@ -41,7 +64,10 @@ if __name__ == "__main__":
 
     F = eightpoint(pts1, pts2, M=np.max([*im1.shape, *im2.shape]))
 
-    # Q2.1
+    # Print the fundamental matrix F 
+    print("Fundamental Matrix:" + str(F))
+
+    # Q2.1 - Displaying the epipolar lines
     displayEpipolarF(im1, im2, F)
 
     # Simple Tests to verify your implementation:
