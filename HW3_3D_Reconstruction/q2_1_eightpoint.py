@@ -65,7 +65,7 @@ if __name__ == "__main__":
     F = eightpoint(pts1, pts2, M=np.max([*im1.shape, *im2.shape]))
 
     # Print the fundamental matrix F 
-    print("Fundamental Matrix:" + str(F))
+    print("Fundamental Matrix:\n" + str(F))
 
     M = np.max([*im1.shape, *im2.shape])
 
