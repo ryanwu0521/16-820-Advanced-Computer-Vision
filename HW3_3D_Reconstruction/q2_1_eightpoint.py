@@ -67,6 +67,11 @@ if __name__ == "__main__":
     # Print the fundamental matrix F 
     print("Fundamental Matrix:" + str(F))
 
+    M = np.max([*im1.shape, *im2.shape])
+
+    # Save the fundamental matrix F and the scalar parameter M
+    np.savez("q2_1.npz", F, M)
+
     # Q2.1 - Displaying the epipolar lines
     displayEpipolarF(im1, im2, F)
 

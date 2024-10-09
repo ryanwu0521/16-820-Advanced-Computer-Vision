@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from helper import displayEpipolarF, calc_epi_error, toHomogenous, _singularize
 
 # Insert your package here
-
+import cv2
 
 """
 Q2.2: Seven Point Algorithm for calculating the fundamental matrix
@@ -27,9 +27,25 @@ Q2.2: Seven Point Algorithm for calculating the fundamental matrix
 
 def sevenpoint(pts1, pts2, M):
     Farray = []
-    # ----- TODO -----
-    # YOUR CODE HERE
-    raise NotImplementedError()
+    # Normalize the input points using the matrix T
+    T = np.array([[1 / M, 0, 0], [0, 1 / M, 0], [0, 0, 1]])
+    pts1_norm = cv2.normalize(pts1, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+    pts2_norm = cv2.normalize(pts2, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+
+    # Constructing the A matrix
+    A = np.zeros((7, 9))
+    for i in range(7):
+        x1, y1 = pts1_norm[i]
+        x2, y2 = pts2_norm[i]
+        A[i] = np.array([x1 * x2, x1 * y2, x1, y1 * x2, y1 * y2, y1, x2, y2, 1])
+
+    # Solve for least square solution using SVD
+    _, _, V = np.linalg.svd(A)
+    F1 = V[-1].reshape(3, 3)
+    F2 = V[-2].reshape(3, 3)
+
+    '''not complete'''
+
     return Farray
 
 
