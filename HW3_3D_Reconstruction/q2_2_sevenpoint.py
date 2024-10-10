@@ -27,10 +27,10 @@ Q2.2: Seven Point Algorithm for calculating the fundamental matrix
 
 def sevenpoint(pts1, pts2, M):
     Farray = []
-    # Normalize the input points using the matrix T
+    # Normalize the input points
     T = np.array([[1 / M, 0, 0], [0, 1 / M, 0], [0, 0, 1]])
-    pts1_norm = cv2.normalize(pts1, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
-    pts2_norm = cv2.normalize(pts2, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
+    pts1_norm = pts1 / M
+    pts2_norm = pts2 / M
 
     # Constructing the A matrix
     A = np.zeros((7, 9))
@@ -41,11 +41,38 @@ def sevenpoint(pts1, pts2, M):
 
     # Solve for least square solution using SVD
     _, _, V = np.linalg.svd(A)
-    F1 = V[-1].reshape(3, 3)
-    F2 = V[-2].reshape(3, 3)
+    
+    # Pick the last two colum vector of vT.T (the two null space solution f1 and f2)
+    f1 = V[-1].reshape(3, 3)
+    f2 = V[-2].reshape(3, 3)
 
-    '''not complete'''
+    # Coefficients of the polynomial equation
+    coeff = []
+    for a in [0, 1/3, 2/3, 1]:
+        F = a * f1 + (1 - a) * f2  # Set up the polynomial equation 
+        coeff.append(np.linalg.det(F))
+    
+    '''Alternative modular implementation'''
+    # Set up the polynomial equation 
+    # def cubic_poly(a):
+    #     F = a * f1 + (1 - a) * f2
+    #     return np.linalg.det(F) 
 
+    # Coefficients of the polynomial equation
+    # coeff = [cubic_poly(0), cubic_poly(1/3), cubic_poly(2/3), cubic_poly(1)]
+    '''End of alternative implementation'''
+
+    # Solve the polynomial equation (np.polynomial.polynomial.polyroots)
+    roots = np.polynomial.polynomial.polyroots(coeff).real
+    # print("Roots of the polynomial:\n", roots)
+
+    # Unscale the fundamental matrixes
+    for root in roots:
+        F = root * f1 + (1 - root) * f2
+        F = _singularize(F)
+        F = np.dot(np.dot(T.T, F), T)  # Unnormlize the fundamental matrix
+        Farray.append(F)
+    
     return Farray
 
 
@@ -64,16 +91,21 @@ if __name__ == "__main__":
     M = np.max([*im1.shape, *im2.shape])
 
     Farray = sevenpoint(pts1[indices, :], pts2[indices, :], M)
-
-    print(Farray)
-
+    
+    # for i, F in enumerate(Farray):
+    #     print(f"Recovered Fundamental Matrix {i+1}:\n{F}\n")
+    
     F = Farray[0]
 
+    # Print the recovered fundamental matrix F
+    print("Recovered Fundamental Matrix:\n" + str(F))
+
+    # save the recovered F
     np.savez("q2_2.npz", F, M)
 
     # fundamental matrix must have rank 2!
     # assert(np.linalg.matrix_rank(F) == 2)
-    displayEpipolarF(im1, im2, F)
+    # displayEpipolarF(im1, im2, F)
 
     # Simple Tests to verify your implementation:
     # Test out the seven-point algorithm by randomly sampling 7 points and finding the best solution.
@@ -102,7 +134,13 @@ if __name__ == "__main__":
 
     min_idx = np.argmin(np.abs(np.array(ress)))
     F = F_res[min_idx]
+    print("Best Fundamental Matrix:\n", F)
     print("Error:", ress[min_idx])
+
+    displayEpipolarF(im1, im2, F)
+
+    # save the best F
+    # np.savez("q2_2.npz", F, M)
 
     assert F.shape == (3, 3)
     assert F[2, 2] == 1
