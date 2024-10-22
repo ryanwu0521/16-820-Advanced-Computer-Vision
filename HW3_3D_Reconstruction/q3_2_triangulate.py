@@ -49,7 +49,6 @@ def triangulate(C1, pts1, C2, pts2):
         X /= X[3]      # Convert to non-homogeneous coordinates
         P[i, :] = X[0:3]
         
-
         # Calculate the reprojection error
         p1 = C1.dot(X.T) 
         p1 /= p1[2]
@@ -110,7 +109,7 @@ def findM2(F, pts1, pts2, intrinsics, filename="q3_3.npz"):
         # Triangulate the points
         P, err = triangulate(C1, pts1, C2, pts2)
 
-        # Update the best error and M2
+        # Update the best error, M2, C2, and P
         if err < best_error:
             best_error = err
             best_M2 = M2
