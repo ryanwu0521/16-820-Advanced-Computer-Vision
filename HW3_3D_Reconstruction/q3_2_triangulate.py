@@ -28,11 +28,37 @@ Q3.2: Triangulate a set of 2D coordinates in the image to a set of 3D points.
 
 
 def triangulate(C1, pts1, C2, pts2):
-    # Replace pass by your implementation
-    # ----- TODO -----
-    # YOUR CODE HERE
+    # Initialize the 3D points and error
+    number_of_points = pts1.shape[0]
+    P = np.zeros((number_of_points, 3))
+    err = 0
 
-    raise NotImplementedError()
+    # Loop through the points
+    A = np.zeros((4, 4))
+    for i in range(number_of_points):
+        x1, y1 = pts1[i]
+        x2, y2 = pts2[i]
+        A[0] = x1 * C1[2] - C1[0]
+        A[1] = y1 * C1[2] - C1[1]
+        A[2] = x2 * C2[2] - C2[0]
+        A[3] = y2 * C2[2] - C2[1]
+
+        # Solve for the least square solution
+        _, _, V = np.linalg.svd(A)
+        X = V[-1, :]   # X represents the 3D point in homogeneous coordinates
+        X /= X[3]      # Convert to non-homogeneous coordinates
+        P[i, :] = X[0:3]
+        
+
+        # Calculate the reprojection error
+        p1 = C1.dot(X.T) 
+        p1 /= p1[2]
+        p2 = C2.dot(X.T)
+        p2 /= p2[2]
+
+        # Accumulate error
+        err += np.linalg.norm(pts1[i] - p1[:2]) ** 2 + np.linalg.norm(pts2[i] - p2[:2]) ** 2
+
     return P, err
 
 
@@ -61,10 +87,38 @@ def findM2(F, pts1, pts2, intrinsics, filename="q3_3.npz"):
     (2) Remember to take a look at camera2 to see how to correctly reterive the M2 matrix from 'M2s'.
 
     """
-    # ----- TODO -----
-    # YOUR CODE HERE
+    # Recover the essential matrix
+    K1, K2 = intrinsics["K1"], intrinsics["K2"]
+    E = essentialMatrix(F, K1, K2)
+    M2s = camera2(E)
+                 
+    # Initialize the best error, M2, C2, and P
+    best_error = float('inf')
+    best_M2 = None
+    best_C2 = None
+    best_P = None
 
-    raise NotImplementedError()
+    # Initialize the camera matrix for C1
+    M1 = np.hstack((np.eye(3), np.zeros((3, 1))))
+    C1 = K1.dot(M1)
+
+    # Loop through the possible M2s
+    for i in range(M2s.shape[2]):
+        M2 = M2s[:, :, i]
+        C2 = K2.dot(M2)
+
+        # Triangulate the points
+        P, err = triangulate(C1, pts1, C2, pts2)
+
+        # Update the best error and M2
+        if err < best_error:
+            best_error = err
+            best_M2 = M2
+            best_C2 = C2
+            best_P = P
+
+    # Save the results
+    np.savez(filename, M2=best_M2, C2=best_C2, P=best_P)
 
     return M2, C2, P
 
@@ -86,4 +140,8 @@ if __name__ == "__main__":
     C1 = K1.dot(M1)
     C2 = K2.dot(M2)
     P_test, err = triangulate(C1, pts1, C2, pts2)
+
+    # Print the projection error
+    print("Projection Error: " + str(err))
+
     assert err < 500

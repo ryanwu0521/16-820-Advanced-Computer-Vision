@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from helper import displayEpipolarF, calc_epi_error, toHomogenous, _singularize
+from helper import displayEpipolarF, calc_epi_error, toHomogenous, _singularize, refineF
 
 # Insert your package here
 import cv2
@@ -37,7 +37,8 @@ def sevenpoint(pts1, pts2, M):
     for i in range(7):
         x1, y1 = pts1_norm[i]
         x2, y2 = pts2_norm[i]
-        A[i] = np.array([x1 * x2, x1 * y2, x1, y1 * x2, y1 * y2, y1, x2, y2, 1])
+        # A[i] = np.array([x1 * x2, x1 * y2, x1, y1 * x2, y1 * y2, y1, x2, y2, 1])
+        A[i] = np.array([x2 * x1, x2 * y1, x2, y2 * x1, y2 * y1, y2, x1, y1, 1])
 
     # Solve for least square solution using SVD
     _, _, V = np.linalg.svd(A)
@@ -47,24 +48,17 @@ def sevenpoint(pts1, pts2, M):
     f2 = V[-2].reshape(3, 3)
 
     # Coefficients of the polynomial equation
-    coeff = []
-    for a in [0, 1/3, 2/3, 1]:
-        F = a * f1 + (1 - a) * f2  # Set up the polynomial equation 
-        coeff.append(np.linalg.det(F))
-    
-    '''Alternative modular implementation'''
     # Set up the polynomial equation 
-    # def cubic_poly(a):
-    #     F = a * f1 + (1 - a) * f2
-    #     return np.linalg.det(F) 
+    def cubic_poly(a):
+        F = a * f1 + (1 - a) * f2
+        return np.linalg.det(F) 
 
     # Coefficients of the polynomial equation
-    # coeff = [cubic_poly(0), cubic_poly(1/3), cubic_poly(2/3), cubic_poly(1)]
-    '''End of alternative implementation'''
+    coeff = [cubic_poly(0), cubic_poly(1/3), cubic_poly(2/3), cubic_poly(1)]
 
     # Solve the polynomial equation (np.polynomial.polynomial.polyroots)
     roots = np.polynomial.polynomial.polyroots(coeff).real
-    # print("Roots of the polynomial:\n", roots)
+    print("Roots of the polynomial:\n", roots)
 
     # Unscale the fundamental matrixes
     for root in roots:
@@ -104,7 +98,7 @@ if __name__ == "__main__":
     np.savez("q2_2.npz", F, M)
 
     # fundamental matrix must have rank 2!
-    # assert(np.linalg.matrix_rank(F) == 2)
+    assert(np.linalg.matrix_rank(F) == 2)
     # displayEpipolarF(im1, im2, F)
 
     # Simple Tests to verify your implementation:

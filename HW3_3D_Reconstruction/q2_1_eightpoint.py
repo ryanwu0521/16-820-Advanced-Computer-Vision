@@ -26,17 +26,17 @@ Q2.1: Eight Point Algorithm
 
 
 def eightpoint(pts1, pts2, M):
-    # Normalize the input points using the matrix T
+    # Normalize the input points
     T = np.array([[1 / M, 0, 0], [0, 1 / M, 0], [0, 0, 1]])
-    pts1_norm = cv2.normalize(pts1, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
-    pts2_norm = cv2.normalize(pts2, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F)
-
+    pts1_norm = pts1 / M
+    pts2_norm = pts2 / M
+  
     # Constructing the A matrix
     A = np.zeros((pts1.shape[0], 9))
     for i in range(pts1.shape[0]):
         x1, y1 = pts1_norm[i]
         x2, y2 = pts2_norm[i]
-        A[i] = np.array([x1 * x2, x1 * y2, x1, y1 * x2, y1 * y2, y1, x2, y2, 1])
+        A[i] = np.array([x2 * x1, x2 * y1, x2, y2 * x1, y2 * y1, y2, x1, y1, 1])
 
     # Solve for least square solution using SVD
     _, _, V = np.linalg.svd(A)
