@@ -36,23 +36,23 @@ def triangulate(C1, pts1, C2, pts2):
     # Loop through the points
     A = np.zeros((4, 4))
     for i in range(number_of_points):
-        x1, y1 = pts1[i]
-        x2, y2 = pts2[i]
-        A[0] = x1 * C1[2] - C1[0]
-        A[1] = y1 * C1[2] - C1[1]
-        A[2] = x2 * C2[2] - C2[0]
-        A[3] = y2 * C2[2] - C2[1]
+        u1, v1 = pts1[i]
+        u2, v2 = pts2[i]
+        A[0] = u1 * C1[2] - C1[0]
+        A[1] = v1 * C1[2] - C1[1]
+        A[2] = u2 * C2[2] - C2[0]
+        A[3] = v2 * C2[2] - C2[1]
 
         # Solve for the least square solution
         _, _, V = np.linalg.svd(A)
-        X = V[-1, :]   # X represents the 3D point in homogeneous coordinates
-        X /= X[3]      # Convert to non-homogeneous coordinates
-        P[i, :] = X[0:3]
+        w = V[-1, :]   # w represents the 3D point in homogeneous coordinates
+        w /= w[3]      # Convert to non-homogeneous coordinates
+        P[i, :] = w[0:3]
         
         # Calculate the reprojection error
-        p1 = C1.dot(X.T) 
+        p1 = C1.dot(w.T) 
         p1 /= p1[2]
-        p2 = C2.dot(X.T)
+        p2 = C2.dot(w.T)
         p2 /= p2[2]
 
         # Accumulate error
