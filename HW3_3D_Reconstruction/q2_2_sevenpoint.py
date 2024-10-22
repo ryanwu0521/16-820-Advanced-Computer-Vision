@@ -37,8 +37,8 @@ def sevenpoint(pts1, pts2, M):
     for i in range(7):
         x1, y1 = pts1_norm[i]
         x2, y2 = pts2_norm[i]
-        # A[i] = np.array([x1 * x2, x1 * y2, x1, y1 * x2, y1 * y2, y1, x2, y2, 1])
-        A[i] = np.array([x2 * x1, x2 * y1, x2, y2 * x1, y2 * y1, y2, x1, y1, 1])
+        A[i] = np.array([x1 * x2, x1 * y2, x1, y1 * x2, y1 * y2, y1, x2, y2, 1])
+        # A[i] = np.array([x2 * x1, x2 * y1, x2, y2 * x1, y2 * y1, y2, x1, y1, 1])
 
     # Solve for least square solution using SVD
     _, _, V = np.linalg.svd(A)
@@ -58,7 +58,7 @@ def sevenpoint(pts1, pts2, M):
 
     # Solve the polynomial equation (np.polynomial.polynomial.polyroots)
     roots = np.polynomial.polynomial.polyroots(coeff).real
-    print("Roots of the polynomial:\n", roots)
+    # print("Roots of the polynomial:\n", roots)
 
     # Unscale the fundamental matrixes
     for root in roots:
@@ -85,9 +85,6 @@ if __name__ == "__main__":
     M = np.max([*im1.shape, *im2.shape])
 
     Farray = sevenpoint(pts1[indices, :], pts2[indices, :], M)
-    
-    # for i, F in enumerate(Farray):
-    #     print(f"Recovered Fundamental Matrix {i+1}:\n{F}\n")
     
     F = Farray[0]
 
