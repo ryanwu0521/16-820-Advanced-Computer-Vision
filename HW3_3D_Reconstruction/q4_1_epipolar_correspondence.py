@@ -6,7 +6,7 @@ from helper import _epipoles
 from q2_1_eightpoint import eightpoint
 
 # Insert your package here
-
+import cv2
 
 # Helper functions for this assignment. DO NOT MODIFY!!!
 def epipolarMatchGUI(I1, I2, F):
@@ -88,11 +88,54 @@ Q4.1: 3D visualization of the temple images.
 
 
 def epipolarCorrespondence(im1, im2, F, x1, y1):
-    # Replace pass by your implementation
-    # ----- TODO -----
-    # YOUR CODE HERE
-    raise NotImplementedError
-    pass
+    # Get the epipolar line in the second image
+    v = np.array([x1, y1, 1])
+    l2 = F.dot(v)
+    
+    # Get the image dimensions
+    h, w = im2.shape[:2]
+
+    # Define the search window
+    search_window = 30
+
+    # Initialize the best match and the best match error
+    best_match = None
+    best_match_error = float('inf')
+
+    # Gaussian weighting kernel
+    gaussian_size = 2 * search_window + 1
+    gaussian = cv2.getGaussianKernel(gaussian_size, 1)
+    gaussian = gaussian.dot(gaussian.T)
+    
+    # Loop through the search window
+    for y2 in range(max(0, y1 - search_window), min(h, y1 + search_window)):
+        x2 = int(-(l2[1] * y2 + l2[2]) / l2[0])
+
+        # Check if the pixel is within the image
+        if x2 < search_window or x2 >= w - search_window:
+            continue
+
+        # Get image patches for the two images
+        patch1 = im1[y1 - search_window:y1 + search_window + 1, x1 - search_window:x1 + search_window + 1]
+        patch2 = im2[y2 - search_window:y2 + search_window + 1, x2 - search_window:x2 + search_window + 1]
+        
+        # Apply the guassian weighting
+        if patch1.shape == patch2.shape == (gaussian_size, gaussian_size, 3):
+            patch1_weighted = patch1 * gaussian[:, :, np.newaxis]
+            patch2_weighted = patch2 * gaussian[:, :, np.newaxis]
+
+            # Compute the Euclidean distance
+            error = np.linalg.norm(patch1_weighted - patch2_weighted)
+            
+            # Update the best match
+            if error < best_match_error:
+                best_match_error = error
+                best_match = (x2, y2)
+
+    # Return the best match
+    x2, y2 = best_match
+
+    return x2, y2
 
 
 if __name__ == "__main__":
