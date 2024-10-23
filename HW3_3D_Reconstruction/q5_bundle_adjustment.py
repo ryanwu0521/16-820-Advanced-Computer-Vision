@@ -52,8 +52,55 @@ Q5.1: RANSAC method.
 
 
 def ransacF(pts1, pts2, M, nIters=1000, tol=10):
-    # TODO: Replace pass by your implementation
-    pass
+    # Initialize variables
+    num = pts1.shape[0]  # number of points
+    # handle special case when number of points is less than 4
+    if num < 8:
+        raise ValueError("Number of points is less than 8")
+    
+    # Initialize the best F, best inliers, max_inliers
+    best_F = None
+    best_inliers = np.zeros(pts1.shape[0], dtype=bool)
+    max_inliers = 0
+
+    # Normalize the input points
+    # T = np.array([[1 / M, 0, 0], [0, 1 / M, 0], [0, 0, 1]])
+    # pts1_norm = pts1 / M
+    # pts2_norm = pts2 / M
+
+    # Convert to homogeneous coordinates
+    pts1_homo = toHomogenous(pts1)
+    pts2_homo = toHomogenous(pts2)
+
+    for i in range(nIters):
+        # Randomly choose 8 points
+        idx = np.random.choice(num, 8, replace=False)
+        pts1_sample = pts1[idx]
+        pts2_sample = pts2[idx]
+
+        # Compute the fundamental matrix (7 or 8 point algorithm)
+        # F = sevenpoint(pts1_sample, pts2_sample, M)
+        F = eightpoint(pts1_sample, pts2_sample, M)
+
+        # Calculate the error
+        epi_error = calc_epi_error(pts1_homo, pts2_homo, F)
+        # print("Epi Error= ", epi_error)
+
+        # Determine inliers
+        inliers = epi_error < tol
+        inlier_count = np.sum(inliers)
+
+        # Update the best F and inliers
+        if inlier_count > max_inliers:
+            max_inliers = inlier_count
+            best_F = F
+            best_inliers = inliers
+       
+        # Print inliers information
+        if i % 100 == 0:  # Print every 100 iterations
+            print(f"Iteration {i}: {inlier_count} inliers")
+
+    return best_F, best_inliers
 
 
 """
