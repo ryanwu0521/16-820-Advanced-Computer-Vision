@@ -109,8 +109,11 @@ def findM2(F, pts1, pts2, intrinsics, filename="q3_3.npz"):
         # Triangulate the points
         P, err = triangulate(C1, pts1, C2, pts2)
 
-        # Update the best error, M2, C2, and P
-        if err < best_error:
+        # Postive Z constraint
+        valid = np.all(P[:, 2] > 0)
+
+        # Update the best error, M2, C2, and P 
+        if valid and err < best_error:
             best_error = err
             best_M2 = M2
             best_C2 = C2
@@ -118,8 +121,8 @@ def findM2(F, pts1, pts2, intrinsics, filename="q3_3.npz"):
 
     # Save the results
     np.savez(filename, M2=best_M2, C2=best_C2, P=best_P)
-
-    return M2, C2, P
+    
+    return best_M2, best_C2, best_P
 
 
 if __name__ == "__main__":

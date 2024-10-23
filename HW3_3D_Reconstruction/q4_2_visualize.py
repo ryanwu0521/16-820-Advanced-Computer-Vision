@@ -4,7 +4,7 @@ from mpl_toolkits.mplot3d import Axes3D
 
 from q2_1_eightpoint import eightpoint
 from q3_2_triangulate import findM2
-from q4_1_epipolar_correspondence import epipolarCorrespondence
+from q4_1_epipolar_correspondence import epipolarCorrespondence 
 
 # Insert your package here
 
@@ -30,9 +30,25 @@ Q4.2: Finding the 3D position of given points based on epipolar correspondence a
 
 
 def compute3D_pts(temple_pts1, intrinsics, F, im1, im2):
-    # ----- TODO -----
-    # YOUR CODE HERE
-    raise NotImplementedError()
+    # Initialize the 3D points
+    P = np.zeros((temple_pts1.shape[0], 3))
+    
+    # Initialize the corresponding points in the second image
+    temple_pts2 = np.zeros_like(temple_pts1)
+
+    # Loop through the points
+    for i in range(temple_pts1.shape[0]):
+        x1, y1 = temple_pts1[i]
+
+        # Get the corresponding point in the second image
+        x2, y2 = epipolarCorrespondence(im1, im2, F, x1, y1)
+
+        # Store the corresponding points in the second image
+        temple_pts2[i] = [x2, y2]
+
+    # Find the 3D points P 
+    _, _, P = findM2(F, temple_pts1, temple_pts2, intrinsics)
+
     return P
 
 
