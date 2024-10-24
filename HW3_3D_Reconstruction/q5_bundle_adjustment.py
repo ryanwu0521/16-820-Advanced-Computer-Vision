@@ -54,7 +54,7 @@ Q5.1: RANSAC method.
 def ransacF(pts1, pts2, M, nIters=1000, tol=10):
     # Initialize variables
     num = pts1.shape[0]  # number of points
-    # handle special case when number of points is less than 4
+    # handle special case when number of points is less than 8
     if num < 8:
         raise ValueError("Number of points is less than 8")
     
@@ -63,17 +63,13 @@ def ransacF(pts1, pts2, M, nIters=1000, tol=10):
     best_inliers = np.zeros(pts1.shape[0], dtype=bool)
     max_inliers = 0
 
-    # Normalize the input points
-    # T = np.array([[1 / M, 0, 0], [0, 1 / M, 0], [0, 0, 1]])
-    # pts1_norm = pts1 / M
-    # pts2_norm = pts2 / M
-
     # Convert to homogeneous coordinates
     pts1_homo = toHomogenous(pts1)
     pts2_homo = toHomogenous(pts2)
 
     for i in range(nIters):
-        # Randomly choose 8 points
+        # Randomly choose points (7 or 8)
+        # idx = np.random.choice(num, 7, replace=False)
         idx = np.random.choice(num, 8, replace=False)
         pts1_sample = pts1[idx]
         pts2_sample = pts2[idx]
@@ -84,7 +80,6 @@ def ransacF(pts1, pts2, M, nIters=1000, tol=10):
 
         # Calculate the error
         epi_error = calc_epi_error(pts1_homo, pts2_homo, F)
-        # print("Epi Error= ", epi_error)
 
         # Determine inliers
         inliers = epi_error < tol
@@ -95,10 +90,6 @@ def ransacF(pts1, pts2, M, nIters=1000, tol=10):
             max_inliers = inlier_count
             best_F = F
             best_inliers = inliers
-       
-        # Print inliers information
-        if i % 100 == 0:  # Print every 100 iterations
-            print(f"Iteration {i}: {inlier_count} inliers")
 
     return best_F, best_inliers
 
@@ -111,8 +102,29 @@ Q5.2: Rodrigues formula.
 
 
 def rodrigues(r):
-    # TODO: Replace pass by your implementation
-    pass
+    theta = np.linalg.norm(r)
+    
+    # No rotation, return identity
+    if theta == 0: 
+        R = np.eye(3)
+        return R
+    
+    # Unit vector
+    u = r / theta
+    
+    # Skew-symmetric matric u_x
+    u_x = np.array([[0, -u[2], u[1]],
+                  [u[2], 0, -u[0]],
+                  [-u[1], u[0], 0]])
+    
+    # Reshape for matrix multiplication
+    u = u.reshape(-1, 1)
+
+    # Rodrigues rotation formula
+    I = np.eye(3)
+    R = I * np.cos(theta) + (1 - np.cos(theta)) * (u @ u.T) + np.sin(theta) * u_x
+        
+    return R
 
 
 """
@@ -123,8 +135,38 @@ Q5.2: Inverse Rodrigues formula.
 
 
 def invRodrigues(R):
-    # TODO: Replace pass by your implementation
-    pass
+    # Compute and construct varibles: A, rho, s, c, theta
+    A = (R - R.T) / 2
+    rho = np.array([A[2, 1], A[0, 2], A[1, 0]])
+    s = np.linalg.norm(rho)
+    c = (np.trace(R) - 1) / 2
+    theta = np.arctan2(s, c)
+
+    # Special Case
+    if s == 0 and c == 1:
+        r = np.zeros(3)  # no rotation
+        return r
+    
+    elif s == 0 and c == -1:
+        # 180 degree rotation
+        R_plus_I = R + np.eye(3)
+        v = R_plus_I[:, np.argmax(np.diag(R_plus_I))]
+        u = v / np.linalg.norm(v)
+        r = u * np.pi
+
+        # Sign flip condition
+        if np.linalg.norm(r) == np.pi and \
+           ((r[0] == 0 and r[1] == 0 and r[2] < 0) or
+            (r[0] == 0 and r[1] < 0) or
+            (r[0] < 0)):
+            r = -r
+        return r
+        
+    # General case 
+    elif np.sin(theta) != 0:   
+        u = rho / s
+        r = u * theta
+        return r
 
 
 """
@@ -175,23 +217,56 @@ def bundleAdjustment(K1, M1, p1, K2, M2_init, p2, P_init):
 if __name__ == "__main__":
     np.random.seed(1)  # Added for testing, can be commented out
 
-    some_corresp_noisy = np.load(
-        "data/some_corresp_noisy.npz"
-    )  # Loading correspondences
+    some_corresp_noisy = np.load("data/some_corresp_noisy.npz")  # Loading correspondences
     intrinsics = np.load("data/intrinsics.npz")  # Loading the intrinscis of the camera
     K1, K2 = intrinsics["K1"], intrinsics["K2"]
     noisy_pts1, noisy_pts2 = some_corresp_noisy["pts1"], some_corresp_noisy["pts2"]
     im1 = plt.imread("data/im1.png")
     im2 = plt.imread("data/im2.png")
+            
+    
+    "Test the ransacF function with various parameters" 
+    # (tol)
+    # F, inliers = ransacF(noisy_pts1, noisy_pts2, M=np.max([*im1.shape, *im2.shape]), nIters=1000, tol=1)
+    # print(f"RANSAC with nIters = 1000, tol = 1")
 
-    F, inliers = ransacF(noisy_pts1, noisy_pts2, M=np.max([*im1.shape, *im2.shape]))
+    # F, inliers = ransacF(noisy_pts1, noisy_pts2, M=np.max([*im1.shape, *im2.shape]), nIters=1000, tol=5)
+    # print(f"RANSAC with nIters = 1000, tol = 5")
+
+    F, inliers = ransacF(noisy_pts1, noisy_pts2, M=np.max([*im1.shape, *im2.shape]), nIters=1000, tol=10)
+    print(f"RANSAC with nIters = 1000, tol = 10")
+
+    # F, inliers = ransacF(noisy_pts1, noisy_pts2, M=np.max([*im1.shape, *im2.shape]), nIters=1000, tol=15)
+    # print(f"RANSAC with nIters = 1000, tol = 15")
+
+    # # (nIters)
+    # F, inliers = ransacF(noisy_pts1, noisy_pts2, M=np.max([*im1.shape, *im2.shape]), nIters=100, tol=10)
+    # print(f"RANSAC with nIters = 100, tol = 10")
+
+    # F, inliers = ransacF(noisy_pts1, noisy_pts2, M=np.max([*im1.shape, *im2.shape]), nIters=500, tol=10)
+    # print(f"RANSAC with nIters = 500, tol = 10")
+
+    # F, inliers = ransacF(noisy_pts1, noisy_pts2, M=np.max([*im1.shape, *im2.shape]), nIters=1000, tol=10)
+    # print(f"RANSAC with nIters = 1000, tol = 10")
+
+    # F, inliers = ransacF(noisy_pts1, noisy_pts2, M=np.max([*im1.shape, *im2.shape]), nIters=1500, tol=10)
+    # print(f"RANSAC with nIters = 1500, tol = 10")
+    
+    
+    print(f"Inlier count: {np.sum(inliers)}")
+
+    # Calculate the projection error
+    epi_error = calc_epi_error(toHomogenous(noisy_pts1), toHomogenous(noisy_pts2), F)
+    avg_epi_error = np.mean(epi_error[inliers])
+    print(f"Average Epipolar error: {avg_epi_error}")
+
+    # Normalize the F matrix (per Piazza post @ 117)
+    F = F / F[2, 2]
 
     # displayEpipolarF(im1, im2, F)
 
     # Simple Tests to verify your implementation:
-    pts1_homogenous, pts2_homogenous = toHomogenous(noisy_pts1), toHomogenous(
-        noisy_pts2
-    )
+    pts1_homogenous, pts2_homogenous = toHomogenous(noisy_pts1), toHomogenous(noisy_pts2)
 
     assert F.shape == (3, 3)
     assert F[2, 2] == 1
@@ -208,9 +283,7 @@ if __name__ == "__main__":
 
     # Visualization:
     np.random.seed(1)
-    correspondence = np.load(
-        "data/some_corresp_noisy.npz"
-    )  # Loading noisy correspondences
+    correspondence = np.load("data/some_corresp_noisy.npz")  # Loading noisy correspondences
     intrinsics = np.load("data/intrinsics.npz")  # Loading the intrinscis of the camera
     K1, K2 = intrinsics["K1"], intrinsics["K2"]
     pts1, pts2 = correspondence["pts1"], correspondence["pts2"]
