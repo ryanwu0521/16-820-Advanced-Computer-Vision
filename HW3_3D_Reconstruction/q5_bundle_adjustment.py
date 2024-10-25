@@ -9,6 +9,7 @@ from q3_2_triangulate import findM2
 import scipy
 
 # Insert your package here
+import scipy.optimize as opt
 
 
 # Helper functions for this assignment. DO NOT MODIFY!!!
@@ -182,8 +183,31 @@ Q5.3: Rodrigues residual.
 
 
 def rodriguesResidual(K1, M1, p1, K2, p2, x):
-    # TODO: Replace pass by your implementation
-    pass
+    # Extract the 3D points, P, r2, and t2 from x
+    num_points = p1.shape[0]
+    P = x[:3 * num_points].reshape(-1, 3)
+    r2 = x[3 * num_points:3 * num_points + 3]
+    t2 = x[3 * num_points + 3:]
+
+    # Compute the rotation matrix R2
+    R2 = rodrigues(r2)
+
+    # Compute the projection matrix M2
+    M2 = np.hstack((R2, t2.reshape(-1, 1)))
+
+    # Homogeneous coordinates
+    P_homo = np.hstack((P, np.ones((P.shape[0], 1))))
+
+    # Compute the projection points p1_hat and p2_hat
+    p1_hat_homo = K1 @ (M1 @ P_homo.T)
+    p1_hat = (p1_hat_homo[:2] / p1_hat_homo[2]).T
+    p2_hat_homo = K2 @ (M2 @ P_homo.T)
+    p2_hat = (p2_hat_homo[:2] / p2_hat_homo[2]).T
+
+    # Compute the residuals
+    residuals = np.concatenate([(p1 - p1_hat).reshape([-1]), (p2 - p2_hat).reshape([-1])])
+
+    return residuals
 
 
 """
@@ -207,13 +231,47 @@ Q5.3 Bundle adjustment.
 
 
 def bundleAdjustment(K1, M1, p1, K2, M2_init, p2, P_init):
-    obj_start = obj_end = 0
-    # ----- TODO -----
-    # YOUR CODE HERE
-    raise NotImplementedError()
+    # Extract the rotation and translation from M2_init
+    r2 = invRodrigues(M2_init[:, :3])
+    t2 = M2_init[:, 3]
+
+    # Initial objective function value
+    obj_start = np.concatenate((P_init.flatten(), r2.flatten(), t2))
+
+    # Initial reprojection error
+    residuals = rodriguesResidual(K1, M1, p1, K2, p2, obj_start)
+    print(f"Initial reprojection error: {np.sum(residuals ** 2)}")
+
+    # Optimize the objective function
+    obj_end = opt.minimize(lambda x: np.sum(rodriguesResidual(K1, M1, p1, K2, p2, x) ** 2), obj_start).x
+
+    # Optimized reprojection error
+    residuals = rodriguesResidual(K1, M1, p1, K2, p2, obj_end)
+    print(f"Optimized reprojection error: {np.sum(residuals ** 2)}")
+
+    # Extract the 3D points, r2, and t2 from obj_end
+    num_points = p1.shape[0]
+    P = obj_end[:3 * num_points].reshape(-1, 3)
+    r2 = obj_end[3 * num_points:3 * num_points + 3]
+    t2 = obj_end[3 * num_points + 3:]
+
+    # Compute the rotation matrix R2
+    R2 = rodrigues(r2)
+
+    # Compute the projection matrix M2
+    M2 = np.hstack((R2, t2.reshape(-1, 1)))
+
     return M2, P, obj_start, obj_end
 
 
+"Average reprojection error function"
+def avg_epi_error(F, inliers, noisy_pts1, noisy_pts2):
+    epi_error = calc_epi_error(toHomogenous(noisy_pts1), toHomogenous(noisy_pts2), F)
+    avg_epi_error = np.mean(epi_error[inliers])
+    return avg_epi_error
+
+
+# Main loop
 if __name__ == "__main__":
     np.random.seed(1)  # Added for testing, can be commented out
 
@@ -223,18 +281,17 @@ if __name__ == "__main__":
     noisy_pts1, noisy_pts2 = some_corresp_noisy["pts1"], some_corresp_noisy["pts2"]
     im1 = plt.imread("data/im1.png")
     im2 = plt.imread("data/im2.png")
-            
-    
+
     "Test the ransacF function with various parameters" 
     # (tol)
     # F, inliers = ransacF(noisy_pts1, noisy_pts2, M=np.max([*im1.shape, *im2.shape]), nIters=1000, tol=1)
     # print(f"RANSAC with nIters = 1000, tol = 1")
 
-    # F, inliers = ransacF(noisy_pts1, noisy_pts2, M=np.max([*im1.shape, *im2.shape]), nIters=1000, tol=5)
-    # print(f"RANSAC with nIters = 1000, tol = 5")
+    F, inliers = ransacF(noisy_pts1, noisy_pts2, M=np.max([*im1.shape, *im2.shape]), nIters=1000, tol=5)
+    print(f"RANSAC with nIters = 1000, tol = 5")
 
-    F, inliers = ransacF(noisy_pts1, noisy_pts2, M=np.max([*im1.shape, *im2.shape]), nIters=1000, tol=10)
-    print(f"RANSAC with nIters = 1000, tol = 10")
+    # F, inliers = ransacF(noisy_pts1, noisy_pts2, M=np.max([*im1.shape, *im2.shape]), nIters=1000, tol=10)
+    # print(f"RANSAC with nIters = 1000, tol = 10")
 
     # F, inliers = ransacF(noisy_pts1, noisy_pts2, M=np.max([*im1.shape, *im2.shape]), nIters=1000, tol=15)
     # print(f"RANSAC with nIters = 1000, tol = 15")
@@ -251,18 +308,21 @@ if __name__ == "__main__":
 
     # F, inliers = ransacF(noisy_pts1, noisy_pts2, M=np.max([*im1.shape, *im2.shape]), nIters=1500, tol=10)
     # print(f"RANSAC with nIters = 1500, tol = 10")
-    
-    
+    "End of test"
+
+    # Print the inlier count
     print(f"Inlier count: {np.sum(inliers)}")
 
-    # Calculate the projection error
+    # Calculate the total & average reprojection error
     epi_error = calc_epi_error(toHomogenous(noisy_pts1), toHomogenous(noisy_pts2), F)
-    avg_epi_error = np.mean(epi_error[inliers])
-    print(f"Average Epipolar error: {avg_epi_error}")
+    print(f"Total Reprojection error: {np.sum(epi_error ** 2)}")
+    avg_epi_error = avg_epi_error(F, inliers, noisy_pts1, noisy_pts2)
+    print(f"Average Reprojection error: {avg_epi_error}")
 
     # Normalize the F matrix (per Piazza post @ 117)
     F = F / F[2, 2]
 
+    # # Display the epipolar lines
     # displayEpipolarF(im1, im2, F)
 
     # Simple Tests to verify your implementation:
@@ -298,3 +358,15 @@ if __name__ == "__main__":
     Call the bundleAdjustment function to optimize the extrinsics and 3D points
     Plot the 3D points before and after bundle adjustment using the plot_3D_dual function
     """
+
+    # Find the extrinsics of the second camera
+    M2_init, C2_init, P_init = findM2(F, pts1[inliers], pts2[inliers], intrinsics)
+
+    # Bundle adjustment
+    P1 = np.hstack((noisy_pts1, np.ones((noisy_pts1.shape[0], 1))))
+    M1 = np.hstack((np.eye(3), np.zeros((3, 1))))
+    M2_opt, P_opt, obj_start, obj_end = bundleAdjustment(K1, M1, pts1[inliers], K2, M2_init, pts2[inliers], P_init)
+
+    # Plot the 3D points before and after bundle adjustment
+    plot_3D_dual(P_init, P_opt)
+    plt.show()
