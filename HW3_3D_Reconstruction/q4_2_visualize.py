@@ -47,9 +47,9 @@ def compute3D_pts(temple_pts1, intrinsics, F, im1, im2):
         temple_pts2[i] = [x2, y2]
 
     # Find the 3D points P 
-    _, _, P = findM2(F, temple_pts1, temple_pts2, intrinsics)
+    M2, C2, P = findM2(F, temple_pts1, temple_pts2, intrinsics)
 
-    return P
+    return M2, C2, P
 
 
 def plot_3D(P):
@@ -80,7 +80,12 @@ if __name__ == "__main__":
 
     F = eightpoint(pts1, pts2, M=np.max([*im1.shape, *im2.shape]))
 
-    P = compute3D_pts(temple_pts1, intrinsics, F, im1, im2)
+    M2, C2, P = compute3D_pts(temple_pts1, intrinsics, F, im1, im2)
+
+    # Save results (F, M1, M2, C1, C2) to q4_2.npz
+    M1 = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]])
+    C1 = K1.dot(M1)
+    np.savez("q4_2.npz", F=F, M1=M1, M2=M2, C1=C1, C2=C2)
 
     # Visualize
     fig = plt.figure()
