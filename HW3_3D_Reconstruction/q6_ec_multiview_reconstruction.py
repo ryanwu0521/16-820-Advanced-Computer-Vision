@@ -23,23 +23,39 @@ Modified by Vineet Tambe, 2023.
 """
 
 
-def MultiviewReconstruction(C1, pts1, C2, pts2, C3, pts3, Thres=100):
+def MultiviewReconstruction(C1, pts1, C2, pts2, C3, pts3, Thres=100, filename="q6_1.npz"):
+    # Extract the confidence values
+    conf1 = pts1[:, 2]  
+    conf2 = pts2[:, 2] 
+    conf3 = pts3[:, 2] 
+
+    # Mask for points that meet the threshold
+    mask = (conf1 > Thres) & (conf2 > Thres) & (conf3 > Thres)
+
+    # Apply mask to the points
+    u1, v1 = pts1[mask][:, 0], pts1[mask][:, 1]
+    u2, v2 = pts2[mask][:, 0], pts2[mask][:, 1]
+    u3, v3 = pts3[mask][:, 0], pts3[mask][:, 1]
+
+    # Filter the points
+    pts1_filtered = np.column_stack((u1, v1))
+    pts2_filtered = np.column_stack((u2, v2))
+    pts3_filtered = np.column_stack((u3, v3))
+
     # Initialize the 3D points and error
-    number_of_points = pts1.shape[0]
-    P = np.zeros((number_of_points, 3))
-    err = 0
+    total_err = 0
+    valid_point_count = np.sum(mask) 
 
-    # Loop through the points
-    for i in range(number_of_points):
-        u1, v1, conf1 = pts1[i]
-        u2, v2, conf2 = pts2[i]
-        u3, v3, conf3 = pts3[i]
+    # Triangulate the 3D points
+    P, total_err = triangulate(C1, pts1_filtered, C2, pts2_filtered, C3, pts3_filtered)
 
-        # Check if confidence is above threshold
-        if conf1 > Thres and conf2 > Thres and conf3 > Thres:
-            # Triangulate the 3D point
-            P[i], err_i = triangulate(C1, [u1, v1], C2, [u2, v2], C3, [u3, v3])
-            err += err_i
+    # Calculate the average error
+    err = total_err / valid_point_count
+
+    # Save P & Print the results
+    np.savez(filename, P=P)
+    print("Total Points: " + str(valid_point_count))
+    print("Projection Error: " + str(err))
 
     return P, err
 
@@ -51,25 +67,29 @@ Q6.2 Plot Spatio-temporal (3D) keypoints
 
 
 def plot_3d_keypoint_video(pts_3d_video):
-    # TODO: Replace pass by your implementation
-
     # Initialize the figure
     fig = plt.figure()
     ax = fig.add_subplot(111, projection="3d")
+    ax.set_xlabel("X Label")
+    ax.set_ylabel("Y Label")
+    ax.set_zlabel("Z Label")
+    ax.set_title("Spatio-temporal 3D Reconstruction")
 
     # Loop through the points
-    for i in range(len(connections_3d)):
-        index0, index1 = connections_3d[i]
-        xline = [pts_3d_video[index0, 0], pts_3d_video[index1, 0]]
-        yline = [pts_3d_video[index0, 1], pts_3d_video[index1, 1]]
-        zline = [pts_3d_video[index0, 2], pts_3d_video[index1, 2]]
-        ax.plot(xline, yline, zline, color=colors[i])
+    for i in range(len(pts_3d_video)):
+        # Extract the points
+        pts_3d = pts_3d_video[i]
 
-    # Show the plot
+        # Plot
+        for j in range(len(connections_3d)):
+            index0, index1 = connections_3d[j]
+            xline = [pts_3d[index0, 0], pts_3d[index1, 0]]
+            yline = [pts_3d[index0, 1], pts_3d[index1, 1]]
+            zline = [pts_3d[index0, 2], pts_3d[index1, 2]]
+            ax.plot(xline, yline, zline, color=colors[j])
+
     plt.show()
     
-    pass
-
 
 # Extra Credit
 if __name__ == "__main__":
@@ -103,13 +123,23 @@ if __name__ == "__main__":
         img = visualize_keypoints(im2, pts2)
 
         # TODO: YOUR CODE HERE
-        C1 = K1 @ M1
-        C2 = K2 @ M2
-        C3 = K3 @ M3
 
-        P, err = MultiviewReconstruction(C1, pts1, C2, pts2, C3, pts3)
+        # Q6.1
+        # Calcaulte Camera Matrix
+        C1 = np.dot(K1, M1)
+        C2 = np.dot(K2, M2)
+        C3 = np.dot(K3, M3)
+
+        # Multiview Reconstruction
+        P, err = MultiviewReconstruction(C1, pts1, C2, pts2, C3, pts3, Thres=10) 
+
+        # Append the 3D keypoints
         pts_3d_video.append(P)
-        # print("Error: ", np.mean(err))
-        # np.savez("submission/q6_2.npz", P=P)
 
+        # Visualize resutls
+        plot_3d_keypoint(P)
+
+        # Q6.2
+        # Visualize resutls
         plot_3d_keypoint_video(pts_3d_video)
+        

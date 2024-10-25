@@ -27,7 +27,7 @@ Q3.2: Triangulate a set of 2D coordinates in the image to a set of 3D points.
 """
 
 
-def triangulate(C1, pts1, C2, pts2):
+def triangulate(C1, pts1, C2, pts2, C3=None, pts3=None):
     # Initialize the 3D points and error
     number_of_points = pts1.shape[0]
     P = np.zeros((number_of_points, 3))
@@ -38,10 +38,26 @@ def triangulate(C1, pts1, C2, pts2):
     for i in range(number_of_points):
         u1, v1 = pts1[i]
         u2, v2 = pts2[i]
-        A[0] = u1 * C1[2] - C1[0]
-        A[1] = v1 * C1[2] - C1[1]
-        A[2] = u2 * C2[2] - C2[0]
-        A[3] = v2 * C2[2] - C2[1]
+
+        # 3 views
+        if C3 is not None and pts3 is not None:
+            u3, v3 = pts3[i]
+            # Construct the matrix A for 3 views
+            A = np.zeros((6, 4))
+            A[0] = u1 * C1[2] - C1[0]
+            A[1] = v1 * C1[2] - C1[1]
+            A[2] = u2 * C2[2] - C2[0]
+            A[3] = v2 * C2[2] - C2[1]
+            A[4] = u3 * C3[2] - C3[0]
+            A[5] = v3 * C3[2] - C3[1]
+        # 2 views
+        else:
+            # Construct the matrix A for 2 views
+            A = np.zeros((4, 4))
+            A[0] = u1 * C1[2] - C1[0]
+            A[1] = v1 * C1[2] - C1[1]
+            A[2] = u2 * C2[2] - C2[0]
+            A[3] = v2 * C2[2] - C2[1]
 
         # Solve for the least square solution
         _, _, V = np.linalg.svd(A)
@@ -50,13 +66,21 @@ def triangulate(C1, pts1, C2, pts2):
         P[i, :] = w[0:3]
         
         # Calculate the reprojection error
-        p1 = C1.dot(w.T) 
+        p1 = C1.dot(w.T)
         p1 /= p1[2]
         p2 = C2.dot(w.T)
         p2 /= p2[2]
 
-        # Accumulate error
-        err += np.linalg.norm(pts1[i] - p1[:2]) ** 2 + np.linalg.norm(pts2[i] - p2[:2]) ** 2
+        # 3 views
+        if C3 is not None and pts3 is not None:
+            p3 = C3.dot(w.T)
+            p3 /= p3[2]
+            err += np.linalg.norm(pts1[i] - p1[:2]) ** 2 + \
+                   np.linalg.norm(pts2[i] - p2[:2]) ** 2 + \
+                   np.linalg.norm(pts3[i] - p3[:2]) ** 2
+        else:
+            err += np.linalg.norm(pts1[i] - p1[:2]) ** 2 + \
+                   np.linalg.norm(pts2[i] - p2[:2]) ** 2
 
     return P, err
 
@@ -141,7 +165,7 @@ if __name__ == "__main__":
     M1 = np.hstack((np.identity(3), np.zeros(3)[:, np.newaxis]))
     C1 = K1.dot(M1)
     C2 = K2.dot(M2)
-    P_test, err = triangulate(C1, pts1, C2, pts2)
+    P_test, err = triangulate(C1, pts1, C2, pts2, C3 = None, pts3 = None)
 
     # Print the projection error
     print("Projection Error: " + str(err))

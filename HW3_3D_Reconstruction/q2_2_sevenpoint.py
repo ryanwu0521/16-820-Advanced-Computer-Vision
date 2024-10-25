@@ -37,8 +37,8 @@ def sevenpoint(pts1, pts2, M):
     for i in range(7):
         x1, y1 = pts1_norm[i]
         x2, y2 = pts2_norm[i]
-        # A[i] = np.array([x1 * x2, x1 * y2, x1, y1 * x2, y1 * y2, y1, x2, y2, 1])
-        A[i] = np.array([x2 * x1, x2 * y1, x2, y2 * x1, y2 * y1, y2, x1, y1, 1])
+        A[i] = np.array([x1 * x2, x1 * y2, x1, y1 * x2, y1 * y2, y1, x2, y2, 1])
+        # A[i] = np.array([x2 * x1, x2 * y1, x2, y2 * x1, y2 * y1, y2, x1, y1, 1])
 
     # Solve for least square solution using SVD
     _, _, V = np.linalg.svd(A)
