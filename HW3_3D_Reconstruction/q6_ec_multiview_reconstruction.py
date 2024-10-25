@@ -24,8 +24,24 @@ Modified by Vineet Tambe, 2023.
 
 
 def MultiviewReconstruction(C1, pts1, C2, pts2, C3, pts3, Thres=100):
-    # TODO: Replace pass by your implementation
-    pass
+    # Initialize the 3D points and error
+    number_of_points = pts1.shape[0]
+    P = np.zeros((number_of_points, 3))
+    err = 0
+
+    # Loop through the points
+    for i in range(number_of_points):
+        u1, v1, conf1 = pts1[i]
+        u2, v2, conf2 = pts2[i]
+        u3, v3, conf3 = pts3[i]
+
+        # Check if confidence is above threshold
+        if conf1 > Thres and conf2 > Thres and conf3 > Thres:
+            # Triangulate the 3D point
+            P[i], err_i = triangulate(C1, [u1, v1], C2, [u2, v2], C3, [u3, v3])
+            err += err_i
+
+    return P, err
 
 
 """
@@ -36,6 +52,22 @@ Q6.2 Plot Spatio-temporal (3D) keypoints
 
 def plot_3d_keypoint_video(pts_3d_video):
     # TODO: Replace pass by your implementation
+
+    # Initialize the figure
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection="3d")
+
+    # Loop through the points
+    for i in range(len(connections_3d)):
+        index0, index1 = connections_3d[i]
+        xline = [pts_3d_video[index0, 0], pts_3d_video[index1, 0]]
+        yline = [pts_3d_video[index0, 1], pts_3d_video[index1, 1]]
+        zline = [pts_3d_video[index0, 2], pts_3d_video[index1, 2]]
+        ax.plot(xline, yline, zline, color=colors[i])
+
+    # Show the plot
+    plt.show()
+    
     pass
 
 
@@ -71,3 +103,13 @@ if __name__ == "__main__":
         img = visualize_keypoints(im2, pts2)
 
         # TODO: YOUR CODE HERE
+        C1 = K1 @ M1
+        C2 = K2 @ M2
+        C3 = K3 @ M3
+
+        P, err = MultiviewReconstruction(C1, pts1, C2, pts2, C3, pts3)
+        pts_3d_video.append(P)
+        # print("Error: ", np.mean(err))
+        # np.savez("submission/q6_2.npz", P=P)
+
+        plot_3d_keypoint_video(pts_3d_video)
