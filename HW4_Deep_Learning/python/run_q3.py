@@ -4,6 +4,9 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import ImageGrid
 from nn import *
 
+# fix random seed
+np.random.seed(42)
+
 train_data = scipy.io.loadmat("../data/nist36_train.mat")
 valid_data = scipy.io.loadmat("../data/nist36_valid.mat")
 test_data = scipy.io.loadmat("../data/nist36_test.mat")
@@ -20,8 +23,8 @@ if False:  # view the data
 
 max_iters = 50
 # pick a batch size, learning rate
-batch_size = None
-learning_rate = None
+batch_size = 32
+learning_rate = 0.003
 hidden_size = 64
 ##########################
 ##### your code here #####
@@ -62,7 +65,30 @@ for itr in range(max_iters):
         ##########################
         ##### your code here #####
         ##########################
-        pass
+
+        # forward
+        h1 = forward(xb, params, "layer1")
+        probs = forward(h1, params, "output", softmax)
+
+        # loss
+        # be sure to add loss and accuracy to epoch totals
+        loss, acc = compute_loss_and_acc(yb, probs)
+        total_loss += loss
+        avg_acc += acc
+
+        # backward
+        delta1 = probs - yb
+        delta2 = backwards(delta1, params, "output", linear_deriv)
+        backwards(delta2, params, "layer1", sigmoid_deriv)
+
+        # apply gradient
+        # gradients should be summed over batch samples
+        for k in params.keys():
+            if "grad_" in k:
+                params[k.replace("grad_", "")] -= learning_rate * params[k]
+
+    # divide avg by batch_num
+    avg_acc /= batch_num
 
     if itr % 2 == 0:
         print(
