@@ -24,11 +24,13 @@ if False:  # view the data
 max_iters = 50
 # pick a batch size, learning rate
 batch_size = 32
-learning_rate = 0.003
+# learning_rate = 0.01
+learning_rate = 0.001
+# learning_rate = 0.0001
 hidden_size = 64
 ##########################
 ##### your code here #####
-##########################
+##########################1
 
 
 batches = get_random_batches(train_x, train_y, batch_size)
@@ -179,7 +181,10 @@ confusion_matrix = np.zeros((train_y.shape[1], train_y.shape[1]))
 ##########################
 ##### your code here #####
 ##########################
-
+h1 = forward(test_x, params, "layer1")
+probs = forward(h1, params, "output", softmax)
+for i in range(test_y.shape[0]):
+    confusion_matrix[np.argmax(test_y[i]), np.argmax(probs[i])] += 1
 
 import string
 
