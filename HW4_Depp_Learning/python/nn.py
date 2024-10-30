@@ -13,9 +13,12 @@ from util import *
 def initialize_weights(in_size, out_size, params, name=""):
     W, b = None, None
 
-    ##########################
-    ##### your code here #####
-    ##########################
+    # Xavier initialization
+    limit = np.sqrt(6) / np.sqrt(in_size + out_size)
+    W = np.random.uniform(-limit, limit, (in_size, out_size))
+
+    # bias initialization (1D array)
+    b = np.zeros(out_size)
 
     params["W" + name] = W
     params["b" + name] = b
@@ -26,10 +29,8 @@ def initialize_weights(in_size, out_size, params, name=""):
 # a sigmoid activation function
 def sigmoid(x):
     res = None
-
-    ##########################
-    ##### your code here #####
-    ##########################
+    
+    res = 1 / (1 + np.exp(-x))
 
     return res
 
@@ -50,9 +51,11 @@ def forward(X, params, name="", activation=sigmoid):
     W = params["W" + name]
     b = params["b" + name]
 
-    ##########################
-    ##### your code here #####
-    ##########################
+    # compute the pre-activation
+    pre_act = np.dot(X, W) + b
+
+    # compute the post-activation
+    post_act = activation(pre_act)
 
     # store the pre-activation and post-activation values
     # these will be important in backprop
@@ -67,9 +70,11 @@ def forward(X, params, name="", activation=sigmoid):
 def softmax(x):
     res = None
 
-    ##########################
-    ##### your code here #####
-    ##########################
+    # subtract the max for numerical stability
+    x = x - np.max(x, axis=1, keepdims=True)
+
+    # compute the softmax
+    res = np.exp(x) / np.sum(np.exp(x), axis=1, keepdims = True)
 
     return res
 
@@ -81,9 +86,11 @@ def softmax(x):
 def compute_loss_and_acc(y, probs):
     loss, acc = None, None
 
-    ##########################
-    ##### your code here #####
-    ##########################
+    # compute the loss
+    loss = -np.sum(y * np.log(probs))
+
+    # compute the accuracy
+    acc = np.sum(np.argmax(y, axis=1) == np.argmax(probs, axis=1)) / y.shape[0]
 
     return loss, acc
 
@@ -116,9 +123,18 @@ def backwards(delta, params, name="", activation_deriv=sigmoid_deriv):
     # do the derivative through activation first
     # (don't forget activation_deriv is a function of post_act)
     # then compute the derivative W, b, and X
-    ##########################
-    ##### your code here #####
-    ##########################
+    
+    # compute the derivative (delta)
+    delta = delta * activation_deriv(post_act)
+
+    # compute the gradient of W
+    grad_W = np.dot(X.T, delta)
+
+    # compute the gradient of b
+    grad_b = np.sum(delta, axis=0)
+
+    # compute the gradient of X
+    grad_X = np.dot(delta, W.T)
 
     # store the gradients
     params["grad_W" + name] = grad_W
