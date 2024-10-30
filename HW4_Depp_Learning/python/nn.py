@@ -29,7 +29,8 @@ def initialize_weights(in_size, out_size, params, name=""):
 # a sigmoid activation function
 def sigmoid(x):
     res = None
-    
+    X = np.clip(x, -500, 500) # prevent overflow warning
+
     res = 1 / (1 + np.exp(-x))
 
     return res
@@ -147,7 +148,15 @@ def backwards(delta, params, name="", activation_deriv=sigmoid_deriv):
 # return a list of [(batch1_x,batch1_y)...]
 def get_random_batches(x, y, batch_size):
     batches = []
-    ##########################
-    ##### your code here #####
-    ##########################
+
+    # shuffle the data
+    num_data = x.shape[0]
+    indices = np.arange(num_data)
+    np.random.shuffle(indices)
+
+    # split the data into batches
+    for i in range(0, num_data, batch_size):
+        batch_indices = indices[i:i+batch_size]
+        batches.append((x[batch_indices], y[batch_indices]))
+
     return batches

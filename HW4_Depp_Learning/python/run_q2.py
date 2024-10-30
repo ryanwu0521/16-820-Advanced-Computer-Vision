@@ -93,26 +93,32 @@ for itr in range(max_iters):
     total_loss = 0
     avg_acc = 0
     for xb, yb in batches:
-        ##########################
-        ##### your code here #####
-        ##########################
-        pass
         # forward
+        h1 = forward(xb, params, "layer1")
+        probs = forward(h1, params, "output", softmax)
 
         # loss
         # be sure to add loss and accuracy to epoch totals
+        loss, acc = compute_loss_and_acc(yb, probs)
+        total_loss += loss
+        avg_acc += acc
 
         # backward
+        delta1 = probs - yb
+        delta2 = backwards(delta1, params, "output", linear_deriv)
+        backwards(delta2, params, "layer1", sigmoid_deriv)
 
         # apply gradient
         # gradients should be summed over batch samples
+        for k in params.keys():
+            if "grad_" in k:
+                params[k.replace("grad_", "")] -= learning_rate * params[k]
+
+    # divide avg by batch_num
+    avg_acc /= batch_num
 
     if itr % 100 == 0:
-        print(
-            "itr: {:02d} \t loss: {:.2f} \t acc : {:.2f}".format(
-                itr, total_loss, avg_acc
-            )
-        )
+        print("itr: {:02d} \t loss: {:.2f} \t acc : {:.2f}".format(itr, total_loss, avg_acc))
 
 
 # Q 2.5 should be implemented in this file
@@ -136,19 +142,26 @@ eps = 1e-6
 for k, v in params.items():
     if "_" in k:
         continue
-    # for each value inside the parameter
-    #   add epsilon
-    #   run the network
-    #   get the loss
-    #   subtract 2*epsilon
-    #   run the network
-    #   get the loss
-    #   restore the original parameter value
-    #   compute derivative with central diffs
 
-    ##########################
-    ##### your code here #####
-    ##########################
+    # loop over all parameters (W and b)
+    for i in range(v.size):
+        # add epsilon, run the network, get the loss
+        params[k].flat[i] += eps
+        h1 = forward(x, params, "layer1")
+        probs = forward(h1, params, "output", softmax)
+        loss_add, _ = compute_loss_and_acc(y, probs)
+
+        # subtract 2*epsilon, run the network, get the loss
+        params[k].flat[i] -= 2 * eps
+        h1 = forward(x, params, "layer1")
+        probs = forward(h1, params, "output", softmax)
+        loss_sub, _ = compute_loss_and_acc(y, probs)
+
+        # restore the original parameter value
+        params[k].flat[i] += eps
+
+        # compute derivative with central diffs
+        params["grad_" + k].flat[i] = (loss_add - loss_sub) / (2 * eps) 
 
 total_error = 0
 for k in params.keys():
