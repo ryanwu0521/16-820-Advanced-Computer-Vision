@@ -46,7 +46,10 @@ for k in list(params.keys()):
         params["m_" + name] = np.zeros(params[k].shape)
 
 # should look like your previous training loops
-losses = []
+# losses = []
+
+train_loss = []
+valid_loss = []
 
 for itr in range(max_iters):
     total_loss = 0
@@ -89,7 +92,18 @@ for itr in range(max_iters):
                 params[name] += params["m_" + name]
     
     # append loss
-    losses.append(total_loss/train_x.shape[0])
+    # losses.append(total_loss/train_x.shape[0])
+
+    # append training loss
+    train_loss.append(total_loss/train_x.shape[0])
+
+    # validation loss
+    h1 = forward(valid_x, params, "layer1", relu)
+    h2 = forward(h1, params, "hidden1", relu)
+    h3 = forward(h2, params, "hidden2", relu)
+    probs = forward(h3, params, "output", sigmoid)
+    valid_loss.append(np.sum((probs - valid_x)**2)/valid_x.shape[0])
+
 
     if itr % 2 == 0:
         print("itr: {:02d} \t loss: {:.2f}".format(itr,total_loss))
@@ -97,11 +111,15 @@ for itr in range(max_iters):
         learning_rate *= 0.9
 
 # plot loss curve
-plt.plot(range(len(losses)), losses)
+# plt.plot(range(len(losses)), losses)
+plt.plot(range(len(train_loss)), train_loss, label="training")
+plt.plot(range(len(valid_loss)), valid_loss, label="validation")
 plt.xlabel("epoch")
 plt.ylabel("average loss")
-plt.xlim(0, len(losses)-1)
+# plt.xlim(0, len(losses)-1)
+plt.xlim(0, len(train_loss)-1)
 plt.ylim(0, None)
+plt.legend()
 plt.grid()
 plt.show()
 
