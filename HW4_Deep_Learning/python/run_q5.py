@@ -30,8 +30,24 @@ params = Counter()
 ##### your code here #####
 ##########################
 
+# initialize layers
+initialize_weights(train_x.shape[1], hidden_size, params, "layer1")
+initialize_weights(hidden_size, hidden_size, params, "hidden1")
+initialize_weights(hidden_size, hidden_size, params, "hidden2")
+initialize_weights(hidden_size, train_x.shape[1], params, "output")
+layer1_W_initial = np.copy(params["Wlayer1"]) 
+hidden1_W_initial = np.copy(params["Whidden1"])
+hidden2_W_initial = np.copy(params["Whidden2"])
+output_W_initial = np.copy(params["Woutput"])
+
+for k in list(params.keys()):
+    if "grad" in k:
+        name = k.replace("grad_", "")
+        params["m_" + name] = np.zeros(params[k].shape)
+
 # should look like your previous training loops
 losses = []
+
 for itr in range(max_iters):
     total_loss = 0
     for xb,_ in batches:
@@ -49,15 +65,32 @@ for itr in range(max_iters):
         ##########################
 
         # forward pass
+        h1 = forward(xb, params, "layer1", relu)
+        h2 = forward(h1, params, "hidden1", relu)
+        h3 = forward(h2, params, "hidden2", relu)
+        probs = forward(h3, params, "output", sigmoid)
 
-        # loss
+        # loss (squared error)
+        loss = np.sum((probs - xb)**2)
+        total_loss += loss
 
         # backward
+        delta1 = 2*(probs - xb)
+        delta2 = backwards(delta1, params, "output", sigmoid_deriv)
+        delta3 = backwards(delta2, params, "hidden2", relu_deriv)
+        delta4 = backwards(delta3, params, "hidden1", relu_deriv)
+        backwards(delta4, params, "layer1", relu_deriv)
 
         # apply gradient, remember to update momentum as well
-        
+        for k in list (params.keys()):
+            if "grad" in k:
+                name = k.replace("grad_", "")
+                params["m_" + name] = 0.9 * params["m_" + name] - learning_rate * params[k]
+                params[name] += params["m_" + name]
     
+    # append loss
     losses.append(total_loss/train_x.shape[0])
+
     if itr % 2 == 0:
         print("itr: {:02d} \t loss: {:.2f}".format(itr,total_loss))
     if itr % lr_rate == lr_rate-1:
