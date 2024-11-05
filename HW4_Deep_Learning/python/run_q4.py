@@ -26,7 +26,7 @@ for img in os.listdir("../images"):
     im1 = skimage.img_as_float(skimage.io.imread(os.path.join("../images", img)))
     bboxes, bw = findLetters(im1)
 
-    plt.imshow(bw)
+    plt.imshow(1-bw, cmap = "gray")  # convert to black and white
     for bbox in bboxes:
         minr, minc, maxr, maxc = bbox
         rect = matplotlib.patches.Rectangle(
@@ -59,7 +59,7 @@ for img in os.listdir("../images"):
     letters = np.array(
         [_ for _ in string.ascii_uppercase[:26]] + [str(_) for _ in range(10)]
     )
-    params = pickle.load(open("q3_weights.pickle", "rb"))
+    params = pickle.load(open("../data/q3_weights.pickle", "rb"))
     ##########################
     ##### your code here #####
     ##########################
