@@ -141,7 +141,11 @@ for i, label in enumerate(visualize_labels):
 ##### your code here #####
 ##########################
 
-
+# forward pass
+h1 = forward(visualize_x, params, "layer1", relu)
+h2 = forward(h1, params, "hidden1", relu)
+h3 = forward(h2, params, "hidden2", relu)
+reconstructed_x = forward(h3, params, "output", sigmoid)
 
 # visualize
 fig = plt.figure()
@@ -162,3 +166,12 @@ from skimage.metrics import peak_signal_noise_ratio
 ##########################
 ##### your code here #####
 ##########################
+
+# forward pass
+h1 = forward(valid_x, params, "layer1", relu)
+h2 = forward(h1, params, "hidden1", relu)
+h3 = forward(h2, params, "hidden2", relu)
+probs = forward(h3, params, "output", sigmoid)
+
+psnr = peak_signal_noise_ratio(valid_x, probs)
+print("PSNR: {:.4f}".format(psnr))
