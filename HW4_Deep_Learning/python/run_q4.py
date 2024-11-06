@@ -24,21 +24,15 @@ warnings.simplefilter(action="ignore", category=UserWarning)
 
 for img in os.listdir("../images"):
     im1 = skimage.img_as_float(skimage.io.imread(os.path.join("../images", img)))
-    bboxes, bw = findLetters(im1)
+    bboxes, bw = findLetters(im1)   
 
     plt.imshow(1-bw, cmap = "gray")  # convert to black and white
     for bbox in bboxes:
         minr, minc, maxr, maxc = bbox
-        rect = matplotlib.patches.Rectangle(
-            (minc, minr),
-            maxc - minc,
-            maxr - minr,
-            fill=False,
-            edgecolor="red",
-            linewidth=2,
-        )
+        rect = matplotlib.patches.Rectangle((minc, minr), maxc - minc, maxr - minr, fill=False, edgecolor="red", linewidth=2)
         plt.gca().add_patch(rect)
     plt.show()
+    
     # find the rows using..RANSAC, counting, clustering, etc.
     ##########################
     ##### your code here #####
