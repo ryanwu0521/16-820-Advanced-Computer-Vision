@@ -45,9 +45,9 @@ input_size = train_x.shape[1]
 output_size = len(torch.unique(train_y))
 
 # Define model
-class Net(nn.Module):
+class FCN(nn.Module):
     def __init__(self, input_size, hidden_size, output_size):
-        super(Net, self).__init__()
+        super(FCN, self).__init__()
         self.layer1 = nn.Linear(input_size, hidden_size)
         self.output = nn.Linear(hidden_size, output_size)
 
@@ -57,7 +57,7 @@ class Net(nn.Module):
         return x
 
 # Initialize model
-model = Net(input_size, hidden_size, output_size).to(device)
+model = FCN(input_size, hidden_size, output_size).to(device)
 
 # Loss function
 criterion = nn.CrossEntropyLoss()
