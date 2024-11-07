@@ -115,11 +115,10 @@ for epoch in range(max_iters):
 
 # plot loss curves
 plt.plot(range(len(train_loss)), train_loss, label="training")
-plt.plot(range(len(valid_loss)), valid_loss, label="validation")
+# plt.plot(range(len(valid_loss)), valid_loss, label="validation")
 plt.xlabel("epoch")
 plt.ylabel("average loss")
 plt.xlim(0, len(train_loss) - 1)
-# plt.xlim(0, 50)
 plt.ylim(0, None)
 plt.legend()
 plt.grid()
@@ -127,7 +126,7 @@ plt.show()
 
 # plot accuracy curves
 plt.plot(range(len(train_acc)), train_acc, label="training")
-plt.plot(range(len(valid_acc)), valid_acc, label="validation")
+# plt.plot(range(len(valid_acc)), valid_acc, label="validation")
 plt.xlabel("epoch")
 plt.ylabel("accuracy")
 plt.xlim(0, len(train_acc) - 1)

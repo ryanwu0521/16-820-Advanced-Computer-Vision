@@ -42,7 +42,6 @@ valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=batch_size,
 max_iters = 50
 learning_rate = 0.003
 hidden_size = 64
-input_size = train_x.shape[1]
 output_size = len(torch.unique(train_y))
 
 # Define model (CNN)
@@ -123,7 +122,7 @@ for epoch in range(max_iters):
 
 # plot loss curves
 plt.plot(range(len(train_loss)), train_loss, label="training")
-plt.plot(range(len(valid_loss)), valid_loss, label="validation")
+# plt.plot(range(len(valid_loss)), valid_loss, label="validation")
 plt.xlabel("epoch")
 plt.ylabel("average loss")
 plt.xlim(0, len(train_loss) - 1)
@@ -134,7 +133,7 @@ plt.show()
 
 # plot accuracy curves
 plt.plot(range(len(train_acc)), train_acc, label="training")
-plt.plot(range(len(valid_acc)), valid_acc, label="validation")
+# plt.plot(range(len(valid_acc)), valid_acc, label="validation")
 plt.xlabel("epoch")
 plt.ylabel("accuracy")
 plt.xlim(0, len(train_acc) - 1)
@@ -142,4 +141,3 @@ plt.ylim(0, None)
 plt.legend()
 plt.grid()
 plt.show()
-    
