@@ -10,6 +10,9 @@ from nn import *
 np.random.seed(42)
 torch.manual_seed(42)
 
+# Check GPU availability
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 # Load data
 train_data = scipy.io.loadmat('../data/nist36_train.mat')
 valid_data = scipy.io.loadmat('../data/nist36_valid.mat')
@@ -21,13 +24,12 @@ valid_x, valid_y = valid_data["valid_data"], valid_data["valid_labels"]
 test_x, test_y = test_data["test_data"], test_data["test_labels"]
 
 # convert to pytorch tensors
-train_x = torch.tensor(train_x, dtype=torch.float32)
-train_y = torch.tensor(train_y, dtype=torch.long)
-valid_x = torch.tensor(valid_x, dtype=torch.float32)
-valid_y = torch.tensor(valid_y, dtype=torch.long)
-test_x = torch.tensor(test_x, dtype=torch.float32)
-test_y = torch.tensor(test_y, dtype=torch.long)
-
+train_x = torch.tensor(train_x, dtype=torch.float32).to(device)
+train_y = torch.tensor(np.argmax(train_y, axis=1), dtype=torch.long).to(device)
+valid_x = torch.tensor(valid_x, dtype=torch.float32).to(device)
+valid_y = torch.tensor(np.argmax(valid_y, axis=1), dtype=torch.long).to(device)
+test_x = torch.tensor(test_x, dtype=torch.float32).to(device)
+test_y = torch.tensor(np.argmax(test_y, axis=1), dtype=torch.long).to(device)
 # Data loader
 batch_size = 32
 train_dataset = torch.utils.data.TensorDataset(train_x, train_y)
@@ -40,7 +42,7 @@ max_iters = 50
 learning_rate = 0.003
 hidden_size = 64
 input_size = train_x.shape[1] 
-output_size = train_y.shape[1]
+output_size = len(torch.unique(train_y))
 
 # Define model
 class Net(nn.Module):
@@ -55,7 +57,7 @@ class Net(nn.Module):
         return x
 
 # Initialize model
-model = Net(input_size, hidden_size, output_size)
+model = Net(input_size, hidden_size, output_size).to(device)
 
 # Loss function
 criterion = nn.CrossEntropyLoss()
@@ -79,14 +81,15 @@ for epoch in range(max_iters):
     avg_acc = 0
     
     for xb, yb in train_loader:
+        xb, yb = xb.to(device), yb.to(device)
         optimizer.zero_grad()
         y_pred = model(xb)
-        loss = criterion(y_pred, yb.argmax(dim=1))
+        loss = criterion(y_pred, yb)
         loss.backward()
         optimizer.step()
         
         total_loss += loss.item()
-        avg_acc += (y_pred.argmax(dim=1) == yb.argmax(dim=1)).float().mean().item()
+        avg_acc += (y_pred.argmax(dim=1) == yb).float().mean().item()
 
     train_loss.append(total_loss / len(train_loader))
     train_acc.append(avg_acc / len(train_loader))
@@ -96,10 +99,11 @@ for epoch in range(max_iters):
     avg_acc = 0
     with torch.no_grad():
         for xb, yb in valid_loader:
+            xb, yb = xb.to(device), yb.to(device)
             y_pred = model(xb)
-            loss = criterion(y_pred, yb.argmax(dim=1))
+            loss = criterion(y_pred, yb)
             total_loss += loss.item()
-            avg_acc += (y_pred.argmax(dim=1) == yb.argmax(dim=1)).float().mean().item()
+            avg_acc += (y_pred.argmax(dim=1) == yb).float().mean().item()
     
     valid_loss.append(total_loss / len(valid_loader))
     valid_acc.append(avg_acc / len(valid_loader))
