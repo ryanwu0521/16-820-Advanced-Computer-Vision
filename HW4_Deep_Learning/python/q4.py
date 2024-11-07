@@ -32,7 +32,8 @@ def findLetters(image):
     binary = greyscale < threshold
 
     # Morphology
-    bw = skimage.morphology.closing(binary, skimage.morphology.square(5))
+    bw = skimage.morphology.dilation(binary, skimage.morphology.square(5))
+    bw = skimage.morphology.closing(binary, skimage.morphology.disk(3))
 
     # Label
     label_image = skimage.measure.label(bw, background=0, connectivity=2)
