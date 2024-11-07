@@ -29,15 +29,15 @@ test_x = torch.tensor(test_x, dtype=torch.float32)
 test_y = torch.tensor(test_y, dtype=torch.long)
 
 # Data loader
+batch_size = 32
 train_dataset = torch.utils.data.TensorDataset(train_x, train_y)
-train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=32, shuffle=True)
+train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 valid_dataset = torch.utils.data.TensorDataset(valid_x, valid_y)
-valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=32, shuffle=False)
+valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=batch_size, shuffle=False)
 
 # Define model parameters
 max_iters = 50
 learning_rate = 0.003
-batch_size = 32
 hidden_size = 64
 input_size = train_x.shape[1] 
 output_size = train_y.shape[1]
