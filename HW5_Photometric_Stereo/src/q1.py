@@ -41,17 +41,36 @@ def renderNDotLSphere(center, rad, light, pxSize, res):
     image : numpy.ndarray
         The rendered image of the hemispherical bowl
     """
-
+    # Meshgrid for camera frame
     [X, Y] = np.meshgrid(np.arange(res[0]), np.arange(res[1]))
     X = (X - res[0] / 2) * pxSize * 1.0e-4
     Y = (Y - res[1] / 2) * pxSize * 1.0e-4
+
+    # Calculate Z using the equation of a sphere
     Z = np.sqrt(rad**2 + 0j - X**2 - Y**2)
     X[np.real(Z) == 0] = 0
     Y[np.real(Z) == 0] = 0
     Z = np.real(Z)
 
-    image = None
-    # Your code here
+    # Initialize image array
+    image = np.zeros((res[1], res[0]))
+
+    # Normalize the light vector
+    light = light / np.linalg.norm(light)
+
+    # Loop over each pixel
+    for i in range(res[1]):
+        for j in range(res[0]):
+            # Omit the pixels that are outside the sphere
+            if Z[i, j] > 0:
+                # Calculate the normal at the point
+                normal = np.array([X[i, j], Y[i, j], Z[i, j]])
+                normal = normal / np.linalg.norm(normal) 
+                
+                # Calculate the intensity of the pixel
+                intensity = np.dot(normal, light)
+                image[i, j] = max(0, intensity)
+    
     return image
 
 
