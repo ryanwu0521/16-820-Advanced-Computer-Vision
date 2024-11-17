@@ -100,10 +100,40 @@ def loadData(path="../data/"):
 
     """
 
+    # Initialize variables
     I = None
     L = None
     s = None
-    # Your code here
+    luminance_channel = []
+    
+    # Load the lighting source from sources.npy (3 x 7)
+    L = np.load(path + "sources.npy").T
+
+    # Loop over each image
+    for i in range(1, 8):
+        # Load the image
+        image = plt.imread(path + "input_" + str(i) + ".tif")
+        image = image.astype(np.uint16)  # 16-bit image
+
+        # Convert the image to XYZ color space to get the luminance
+        image = rgb2xyz(image)
+        luminance = image[:, :, 1]
+
+        # Vectorize the luminance values and store them in I
+        luminance_channel.append(luminance.flatten())
+
+        # Get the shape of the image
+        if s is None:
+            s = luminance.shape
+    
+    # Convert the list to a numpy array (7 x P)
+    I = np.vstack(luminance_channel)
+
+    # Print the shapes 
+    print('Matrix I:', I.shape)
+    print('Matrix L:', L.shape)
+    print('Image shape:', s)
+
     return I, L, s
 
 
@@ -224,28 +254,28 @@ def estimateShape(normals, s):
 
 if __name__ == "__main__":
     # Part 1(b)
-    radius = 0.75  # cm
-    center = np.asarray([0, 0, 0])  # cm
-    pxSize = 7  # um
-    res = (3840, 2160)
+    # radius = 0.75  # cm
+    # center = np.asarray([0, 0, 0])  # cm
+    # pxSize = 7  # um
+    # res = (3840, 2160)
 
-    light = np.asarray([1, 1, 1]) / np.sqrt(3)
-    image = renderNDotLSphere(center, radius, light, pxSize, res)
-    plt.figure()
-    plt.imshow(image, cmap="gray")
-    plt.imsave("1b-a.png", image, cmap="gray")
+    # light = np.asarray([1, 1, 1]) / np.sqrt(3)
+    # image = renderNDotLSphere(center, radius, light, pxSize, res)
+    # plt.figure()
+    # plt.imshow(image, cmap="gray")
+    # plt.imsave("1b-a.png", image, cmap="gray")
 
-    light = np.asarray([1, -1, 1]) / np.sqrt(3)
-    image = renderNDotLSphere(center, radius, light, pxSize, res)
-    plt.figure()
-    plt.imshow(image, cmap="gray")
-    plt.imsave("1b-b.png", image, cmap="gray")
+    # light = np.asarray([1, -1, 1]) / np.sqrt(3)
+    # image = renderNDotLSphere(center, radius, light, pxSize, res)
+    # plt.figure()
+    # plt.imshow(image, cmap="gray")
+    # plt.imsave("1b-b.png", image, cmap="gray")
 
-    light = np.asarray([-1, -1, 1]) / np.sqrt(3)
-    image = renderNDotLSphere(center, radius, light, pxSize, res)
-    plt.figure()
-    plt.imshow(image, cmap="gray")
-    plt.imsave("1b-c.png", image, cmap="gray")
+    # light = np.asarray([-1, -1, 1]) / np.sqrt(3)
+    # image = renderNDotLSphere(center, radius, light, pxSize, res)
+    # plt.figure()
+    # plt.imshow(image, cmap="gray")
+    # plt.imsave("1b-c.png", image, cmap="gray")
 
     # Part 1(c)
     I, L, s = loadData("../data/")
