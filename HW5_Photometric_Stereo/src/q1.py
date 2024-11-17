@@ -253,7 +253,7 @@ def estimateShape(normals, s):
 
 
 if __name__ == "__main__":
-    # Part 1(b)
+    # # Part 1(b)
     # radius = 0.75  # cm
     # center = np.asarray([0, 0, 0])  # cm
     # pxSize = 7  # um
@@ -277,11 +277,12 @@ if __name__ == "__main__":
     # plt.imshow(image, cmap="gray")
     # plt.imsave("1b-c.png", image, cmap="gray")
 
-    # Part 1(c)
+    # # Part 1(c)
     I, L, s = loadData("../data/")
 
     # Part 1(d)
-    # Your code here
+    U, S, Vt = np.linalg.svd(I, full_matrices=False)
+    print('Singular Values of matrix I:', S)
 
     # Part 1(e)
     B = estimatePseudonormalsCalibrated(I, L)
