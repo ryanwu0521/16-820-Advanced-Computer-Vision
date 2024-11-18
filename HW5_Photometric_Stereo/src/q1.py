@@ -227,8 +227,9 @@ def displayAlbedosNormals(albedos, normals, s):
     albedoIm = albedos.reshape(s)
     normalIm = normals.T.reshape(s[0], s[1], 3)
 
-    # Normalize the pseudonormals
-    normalIm = (normalIm + 1) / 2
+    # Normalize the albedos and normals
+    albedoIm = (albedoIm - np.min(albedoIm)) / (np.max(albedoIm) - np.min(albedoIm))
+    normalIm = (normalIm - np.min(normalIm)) / (np.max(normalIm) - np.min(normalIm))
 
     return albedoIm, normalIm
 

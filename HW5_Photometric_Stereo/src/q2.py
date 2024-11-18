@@ -100,10 +100,16 @@ if __name__ == "__main__":
 
     # Part 2 (d)
     surface = estimateShape(normals, s)
-    plotSurface(surface)
+    # plotSurface(surface, suffix="_unintegrated")
 
     # Part 2 (e)
-    # Your code here
+    Nt = enforceIntegrability(normals, s)
+
+    # Generalized Bas-Relief
+    G = np.array([[1, 0, 0], [0, 1, 0], [0, 0, -1]])
+    Nt = G @ Nt
+    surface = estimateShape(Nt, s)
+    plotSurface(surface, suffix="_integrated")
 
     # Part 2 (f)
     # Your code here
