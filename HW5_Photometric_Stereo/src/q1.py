@@ -7,7 +7,9 @@
 import numpy as np
 from matplotlib import pyplot as plt
 from skimage.color import rgb2xyz
-from utils import plotSurface
+from utils import plotSurface, integrateFrankot
+from scipy.sparse import kron, csc_matrix
+from scipy.sparse.linalg import lsqr
 
 
 def renderNDotLSphere(center, rad, light, pxSize, res):
@@ -101,8 +103,6 @@ def loadData(path="../data/"):
     """
 
     # Initialize variables
-    I = None
-    L = None
     s = None
     luminance_channel = []
     
@@ -157,15 +157,16 @@ def estimatePseudonormalsCalibrated(I, L):
     B : numpy.ndarray
         The 3 x P matrix of pesudonormals
     """
-
-    B = None
-    # Your code here
+    
+    # Calculate the pseudonormals using the least squares method
+    B = np.linalg.lstsq(L.T, I, rcond=None)[0]
+    
     return B
 
 
 def estimateAlbedosNormals(B):
     """
-    Question 1 (e)
+    Question 1 (f)
 
     From the estimated pseudonormals, estimate the albedos and normals
 
@@ -183,15 +184,18 @@ def estimateAlbedosNormals(B):
         The 3 x P matrix of normals
     """
 
-    albedos = None
-    normals = None
-    # Your code here
+    # Calculate the albedos
+    albedos = np.linalg.norm(B, axis=0)
+
+    # Normalize the pseudonormals
+    normals = B / albedos
+
     return albedos, normals
 
 
 def displayAlbedosNormals(albedos, normals, s):
     """
-    Question 1 (f, g)
+    Question 1 (f)
 
     From the estimated pseudonormals, display the albedo and normal maps
 
@@ -219,15 +223,19 @@ def displayAlbedosNormals(albedos, normals, s):
 
     """
 
-    albedoIm = None
-    normalIm = None
-    # Your code here
+    # Reshape the albedos and normals
+    albedoIm = albedos.reshape(s)
+    normalIm = normals.T.reshape(s[0], s[1], 3)
+
+    # Normalize the pseudonormals
+    normalIm = (normalIm + 1) / 2
+
     return albedoIm, normalIm
 
 
 def estimateShape(normals, s):
     """
-    Question 1 (j)
+    Question 1 (i)
 
     Integrate the estimated normals to get an estimate of the depth map
     of the surface.
@@ -247,35 +255,43 @@ def estimateShape(normals, s):
 
     """
 
-    surface = None
-    # Your code here
+    # Initialize the surface
+    surface = np.zeros(s)
+
+    # Calculate the gradients of the normals
+    zx = np.reshape(normals[0, :] / -normals[2, :], s)
+    zy = np.reshape(normals[1, :] / -normals[2, :], s)
+
+    # Apply the Frankot-Chellappa algorithm
+    surface = integrateFrankot(zx, zy)
+
     return surface
 
 
 if __name__ == "__main__":
-    # # Part 1(b)
-    # radius = 0.75  # cm
-    # center = np.asarray([0, 0, 0])  # cm
-    # pxSize = 7  # um
-    # res = (3840, 2160)
+    # Part 1(b)
+    radius = 0.75  # cm
+    center = np.asarray([0, 0, 0])  # cm
+    pxSize = 7  # um
+    res = (3840, 2160)
 
-    # light = np.asarray([1, 1, 1]) / np.sqrt(3)
-    # image = renderNDotLSphere(center, radius, light, pxSize, res)
-    # plt.figure()
-    # plt.imshow(image, cmap="gray")
-    # plt.imsave("1b-a.png", image, cmap="gray")
+    light = np.asarray([1, 1, 1]) / np.sqrt(3)
+    image = renderNDotLSphere(center, radius, light, pxSize, res)
+    plt.figure()
+    plt.imshow(image, cmap="gray")
+    plt.imsave("../results/1b-a.png", image, cmap="gray")
 
-    # light = np.asarray([1, -1, 1]) / np.sqrt(3)
-    # image = renderNDotLSphere(center, radius, light, pxSize, res)
-    # plt.figure()
-    # plt.imshow(image, cmap="gray")
-    # plt.imsave("1b-b.png", image, cmap="gray")
+    light = np.asarray([1, -1, 1]) / np.sqrt(3)
+    image = renderNDotLSphere(center, radius, light, pxSize, res)
+    plt.figure()
+    plt.imshow(image, cmap="gray")
+    plt.imsave("../results/1b-b.png", image, cmap="gray")
 
-    # light = np.asarray([-1, -1, 1]) / np.sqrt(3)
-    # image = renderNDotLSphere(center, radius, light, pxSize, res)
-    # plt.figure()
-    # plt.imshow(image, cmap="gray")
-    # plt.imsave("1b-c.png", image, cmap="gray")
+    light = np.asarray([-1, -1, 1]) / np.sqrt(3)
+    image = renderNDotLSphere(center, radius, light, pxSize, res)
+    plt.figure()
+    plt.imshow(image, cmap="gray")
+    plt.imsave("../results/1b-c.png", image, cmap="gray")
 
     # # Part 1(c)
     I, L, s = loadData("../data/")
@@ -290,8 +306,8 @@ if __name__ == "__main__":
     # Part 1(f)
     albedos, normals = estimateAlbedosNormals(B)
     albedoIm, normalIm = displayAlbedosNormals(albedos, normals, s)
-    plt.imsave("1f-a.png", albedoIm, cmap="gray")
-    plt.imsave("1f-b.png", normalIm, cmap="rainbow")
+    plt.imsave("../results/1f-a.png", albedoIm, cmap="gray")
+    plt.imsave("../results/1f-b.png", normalIm, cmap="rainbow")
 
     # Part 1(i)
     surface = estimateShape(normals, s)
