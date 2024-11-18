@@ -36,10 +36,19 @@ def estimatePseudonormalsUncalibrated(I):
         The 3 x 7 array of lighting directions
 
     """
+    
+    # Perfrom SVD on I
+    U, S, Vt = np.linalg.svd(I, full_matrices=False)
 
-    B = None
-    L = None
-    # Your code here
+    # Truncate the top 3 singular values
+    S3 = np.diag(S[:3])     # first 3 singular values
+    U3 = U[:, :3]           # first 3 columns of U
+    Vt3 = Vt[:3, :]         # first 3 rows of Vt
+
+    # Calculate lighting directions (L) and pseudonormals (B)
+    L = U3 @ np.sqrt(S3)
+    B = np.sqrt(S3) @ Vt3  # B: 3 x P
+   
     return B, L
 
 
@@ -70,18 +79,31 @@ def plotBasRelief(B, mu, nu, lam):
     """
 
     # Your code here
-    pass
 
-    if __name__ == "__main__":
-        pass
-        # Part 2 (b)
-        # Your code here
+if __name__ == "__main__":
+    # Part 2 (b)
+    # Load the image data
+    I, L0, s = loadData("../data/")
 
-        # Part 2 (d)
-        # Your code here
+    # Estimate the albedos and normals
+    B, L = estimatePseudonormalsUncalibrated(I)
+    albedos, normals = estimateAlbedosNormals(B)
+    albedoIm, normalIm = displayAlbedosNormals(albedos, normals, s)
 
-        # Part 2 (e)
-        # Your code here
+    # Save the images
+    plt.imsave("../results/2b-a.png", albedoIm, cmap="gray")
+    plt.imsave("../results/2b-b.png", normalIm, cmap="rainbow")
 
-        # Part 2 (f)
-        # Your code here
+    # Part 2 (c)
+    print('Ground truth lighting directions:\n', L0)
+    print('Estimated lighting directions:\n', L)
+
+    # Part 2 (d)
+    surface = estimateShape(normals, s)
+    plotSurface(surface)
+
+    # Part 2 (e)
+    # Your code here
+
+    # Part 2 (f)
+    # Your code here
