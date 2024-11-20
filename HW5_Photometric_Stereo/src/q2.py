@@ -89,16 +89,13 @@ def plotBasRelief(B, mu, nu, lam):
     """
 
     # Construct the bas-relief transformation matrix
-    # G = np.array([[1, 0, mu], [0, 1, nu], [0, 0, lam]])     # Generalized Bas-Relief matrix
     G = np.array([[1, 0, 0], [0, 1, 0], [mu, nu, lam]])   # Generalized Bas-Relief matrix
 
     # Apply the bas-relief transformation
-    # B = G @ B
-    B = G.T @ B
-    
+    B_transformed = np.linalg.inv(G.T) @ B
 
     # Compute the albedos and normals
-    albedos, normals = estimateAlbedosNormals(B)
+    albedos, normals = estimateAlbedosNormals(B_transformed)
    
     # Enforce integrability
     Nt = enforceIntegrability(normals, s)
@@ -106,13 +103,12 @@ def plotBasRelief(B, mu, nu, lam):
     # Estimate the shape
     surface = estimateShape(Nt, s)
 
-    # Normalize the surface for saving as an image
-    normalized_surface = (surface - np.min(surface)) / (np.max(surface) - np.min(surface))
+    # Normalize the surface
+    # surface = (surface - np.min(surface)) / (np.max(surface) - np.min(surface))
 
     # Plot the surface
     plotSurface(surface, suffix=f"_basrelief_mu{mu}_nu{nu}_lam{lam}")
-    # plotSurface(normalized_surface, suffix=f"_basrelief_mu{mu}_nu{nu}_lam{lam}")
-
+ 
 if __name__ == "__main__":
     # Part 2 (b)
     # Load the image data
@@ -127,15 +123,15 @@ if __name__ == "__main__":
     # plt.imsave("../results/2b-a.png", albedoIm, cmap="gray")
     # plt.imsave("../results/2b-b.png", normalIm, cmap="rainbow")
 
-    # Part 2 (c)
-    # print('Ground truth lighting directions:\n', L0)
-    # print('Estimated lighting directions:\n', L)
+    # # Part 2 (c)
+    # # print('Ground truth lighting directions:\n', L0)
+    # # print('Estimated lighting directions:\n', L)
 
-    # Part 2 (d)
+    # # Part 2 (d)
     # surface_unenforce = estimateShape(normals, s)
     # plotSurface(surface_unenforce, suffix="_unintegrated")
 
-    # Part 2 (e)
+    # # Part 2 (e)
     # Nt = enforceIntegrability(normals, s)
     # G = np.array([[1, 0, 0], [0, 1, 0], [0, 0, -1]])    # Generalized Bas-Relief matrix
     # Nt = G @ Nt
@@ -145,35 +141,21 @@ if __name__ == "__main__":
 
 # def plotBasRelief(B, mu, nu, lam):
     # Part 2 (f)
-
-    # # Test varying mu
-    # plotBasRelief(B, 1, 1, 1)
-    # plotBasRelief(B, 5, 1, 1)
-    # plotBasRelief(B, 10, 1, 1)
-
-    # Test varying nu
-    # plotBasRelief(B, 1, 1, 1)
-    # plotBasRelief(B, 1, 5, 1)
-    # plotBasRelief(B, 1, 10, 1)
-
-    # # Test varying lambda
-    # plotBasRelief(B, 0, 0, 1)
-    # plotBasRelief(B, 0, 0, 5)
-    # plotBasRelief(B, 0, 0, 10)
-
-    
-
     # Test varying mu
-    # plotBasRelief(B, -1, 0.5 ,1)
     # plotBasRelief(B, 0.5, 0.5 ,1)
     # plotBasRelief(B, 1, 0.5 ,1)
+    # plotBasRelief(B, 5, 0.5 ,1)
 
-    # Test varying nu
-    # plotBasRelief(B, 0.5, -1, 1)
+    # # Test varying nu
     # plotBasRelief(B, 0.5, 0.5, 1)
     # plotBasRelief(B, 0.5, 1, 1)
+    # plotBasRelief(B, 0.5, 5, 1)
 
-    # Test varying lambda
-    plotBasRelief(B, 0.5, 0.5, -1)
-    plotBasRelief(B, 0.5, 0.5, 0.5)
-    plotBasRelief(B, 0.5, 0.5, 10)
+    # # Test varying lambda
+    # plotBasRelief(B, 0.5, 0.5, 0.5)
+    # plotBasRelief(B, 0.5, 0.5, 1)
+    # plotBasRelief(B, 0.5, 0.5, 10)
+
+    # Part 2 (g)
+    plotBasRelief(B, 0, 0, 0.009)   # smallest lambda value that still gives a good result
+    # plotBasRelief(B, 0, 0, 0.0001)  # smaller lambda value but not giving good result0.0
