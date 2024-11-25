@@ -130,9 +130,9 @@ def loadData(path="../data/"):
     I = np.vstack(luminance_channel)
 
     # Print the shapes 
-    print('Matrix I:', I.shape)
-    print('Matrix L:', L.shape)
-    print('Image shape:', s)
+    # print('Matrix I:', I.shape)
+    # print('Matrix L:', L.shape)
+    # print('Image shape:', s)
 
     return I, L, s
 
